@@ -1,0 +1,10 @@
+﻿name: Security
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Workflow scaffold pending implementation"

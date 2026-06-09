@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-black: #000000;
+    --color-white: #FFFFFF;
+    --color-teal: #006C67;
+    --color-mid-grey: #888888;
+    --color-coral: #FF8552;
+    --color-gold: #D19900;
+    --color-peach: #FFE1D1;
+    --color-teal-glow: #00D7C8;
+    --color-dark-surface: #070909;
+    --color-dark-card: #101414;
+    --color-dark-border: #1E2B2A;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: Space Grotesk, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .finding-card {
+    @apply border border-dark-border/20 dark:border-dark-border rounded-[6px] p-5 bg-white dark:bg-dark-card;
+  }
+}
