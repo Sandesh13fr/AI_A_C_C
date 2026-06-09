@@ -57,7 +57,9 @@ cd frontend; npm.cmd run typecheck; npm.cmd run build
 
 ## Environment
 
-Copy `.env.example`, `backend/.env.example`, and `frontend/.env.example` or `frontend/.env.local.example` as needed. Required production values include `SECRET_KEY`, `DATABASE_URL`, `SYNC_DATABASE_URL`, `REDIS_URL`, explicit `CORS_ORIGINS`, storage configuration, and OpenRouter/OpenAI-compatible keys if model-backed features are enabled.
+Copy `.env.example`, `backend/.env.example`, and `frontend/.env.example` or `frontend/.env.local.example` as needed. Required production values include `SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, explicit `CORS_ORIGINS`, storage configuration, and OpenRouter/OpenAI-compatible keys if model-backed features are enabled. `SYNC_DATABASE_URL` is optional unless you want Alembic to use a separate connection string.
+
+For Railway Postgres, paste the Railway connection string into `DATABASE_URL`. The backend will normalize it for async access and derive a sync URL for migrations when `SYNC_DATABASE_URL` is omitted.
 
 ## Product Guardrails
 

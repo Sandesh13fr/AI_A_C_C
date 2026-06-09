@@ -3,9 +3,11 @@ from __future__ import annotations
 import importlib.util
 from collections.abc import AsyncGenerator
 from functools import lru_cache
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
@@ -19,12 +21,35 @@ def _driver_available(database_url: str) -> bool:
     return True
 
 
+def _is_railway_postgres_url(database_url: str) -> bool:
+    parsed_url = make_url(database_url)
+    host = (parsed_url.host or "").lower()
+    return host.endswith(".railway.app") or host.endswith(".railway.internal")
+
+
+def _async_connect_args(database_url: str) -> dict[str, Any]:
+    if _is_railway_postgres_url(database_url):
+        return {"ssl": True}
+    return {}
+
+
+def _sync_connect_args(database_url: str) -> dict[str, Any]:
+    if _is_railway_postgres_url(database_url):
+        return {"sslmode": "require"}
+    return {}
+
+
 @lru_cache
 def get_async_engine() -> AsyncEngine | None:
     settings = get_settings()
     if not _driver_available(settings.database_url):
         return None
-    return create_async_engine(settings.database_url, pool_pre_ping=False, pool_recycle=300)
+    return create_async_engine(
+        settings.database_url,
+        connect_args=_async_connect_args(settings.database_url),
+        pool_pre_ping=False,
+        pool_recycle=300,
+    )
 
 
 @lru_cache
@@ -32,7 +57,12 @@ def get_sync_engine() -> Engine | None:
     settings = get_settings()
     if settings.sync_database_url.startswith("postgresql") and importlib.util.find_spec("psycopg2") is None:
         return None
-    return create_engine(settings.sync_database_url, pool_pre_ping=False, pool_recycle=300)
+    return create_engine(
+        settings.sync_database_url,
+        connect_args=_sync_connect_args(settings.sync_database_url),
+        pool_pre_ping=False,
+        pool_recycle=300,
+    )
 
 
 @lru_cache

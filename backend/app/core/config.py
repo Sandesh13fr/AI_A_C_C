@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import model_validator
+from sqlalchemy.engine import make_url
+
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except Exception:  # pragma: no cover - fallback for lean local environments
@@ -9,6 +12,30 @@ except Exception:  # pragma: no cover - fallback for lean local environments
 
     class SettingsConfigDict(dict):
         pass
+
+
+def _is_railway_postgres_url(database_url: str) -> bool:
+    parsed_url = make_url(database_url)
+    host = (parsed_url.host or "").lower()
+    return host.endswith(".railway.app") or host.endswith(".railway.internal")
+
+
+def _normalize_async_database_url(database_url: str) -> str:
+    parsed_url = make_url(database_url)
+    if parsed_url.drivername in {"postgres", "postgresql", "postgresql+psycopg2", "postgresql+psycopg"}:
+        parsed_url = parsed_url.set(drivername="postgresql+asyncpg")
+    if _is_railway_postgres_url(str(parsed_url)):
+        parsed_url = parsed_url.set(query={key: value for key, value in parsed_url.query.items() if key not in {"ssl", "sslmode"}})
+    return str(parsed_url)
+
+
+def _normalize_sync_database_url(database_url: str) -> str:
+    parsed_url = make_url(database_url)
+    if parsed_url.drivername in {"postgres", "postgresql+asyncpg", "postgresql+psycopg2", "postgresql+psycopg"}:
+        parsed_url = parsed_url.set(drivername="postgresql")
+    if _is_railway_postgres_url(str(parsed_url)) and "ssl" not in parsed_url.query and "sslmode" not in parsed_url.query:
+        parsed_url = parsed_url.set(query={**parsed_url.query, "sslmode": "require"})
+    return str(parsed_url)
 
 
 class Settings(BaseSettings):
@@ -24,7 +51,7 @@ class Settings(BaseSettings):
     allow_dev_auth: bool = True
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/aw_compliance"
-    sync_database_url: str = "postgresql://postgres:postgres@localhost:5432/aw_compliance"
+    sync_database_url: str = ""
     redis_url: str = "redis://localhost:6379/0"
 
     storage_provider: str = "local"
@@ -51,6 +78,12 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def normalize_database_urls(self) -> Settings:
+        self.database_url = _normalize_async_database_url(self.database_url)
+        self.sync_database_url = _normalize_sync_database_url(self.sync_database_url or self.database_url)
+        return self
 
     def validate_for_production(self) -> None:
         if not self.is_production:

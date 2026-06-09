@@ -13,12 +13,14 @@ Use separate Railway services for:
 
 - `ENVIRONMENT=production`
 - `SECRET_KEY`
-- `DATABASE_URL`
-- `SYNC_DATABASE_URL`
+- `DATABASE_URL` from Railway Postgres or a compatible Postgres provider
+- `SYNC_DATABASE_URL` is optional if you want to override the Alembic URL separately
 - `REDIS_URL`
 - `CORS_ORIGINS`
 - storage provider variables
 - `OPENROUTER_API_KEY` or compatible provider key when model-backed features are enabled
+
+If Railway gives you a standard Postgres URL, paste it into `DATABASE_URL`. The backend normalizes that URL for async access and derives a sync URL for Alembic when `SYNC_DATABASE_URL` is not set.
 
 ## Release Steps
 
