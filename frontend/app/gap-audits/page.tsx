@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Gap audit",
-};
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui/card";
 
 export default function GapAuditsPage() {
   return (
-    <div className="mx-auto max-w-7xl p-5">
-      <h1 className="text-h2 mb-2">Gap audit</h1>
-      <p className="text-body-sm text-mid-grey mb-6">
-        Detect absent protections by comparing document scope against applicable
-        regulatory and advocacy standards.
-      </p>
-    </div>
+    <AppShell title="Gap Audits" subtitle="Compare documents against required protections by jurisdiction, category, and document type.">
+      <Card>
+        <h2 className="text-h3 text-balance">Required Protections</h2>
+        <p className="mt-2 text-body-sm text-mid-grey">No gap findings are loaded for the current workspace.</p>
+      </Card>
+    </AppShell>
   );
 }

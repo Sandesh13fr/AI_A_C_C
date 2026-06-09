@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Reports & exports",
-};
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui/card";
 
 export default function ReportsPage() {
   return (
-    <div className="mx-auto max-w-7xl p-5">
-      <h1 className="text-h2 mb-2">Reports &amp; exports</h1>
-      <p className="text-body-sm text-mid-grey mb-6">
-        Generate and download PDF and CSV reports with citations, confidence
-        scores, and review status.
-      </p>
-    </div>
+    <AppShell title="Reports" subtitle="Internal drafts, final internal packets, partner shares, and external-publication export gates.">
+      <Card>
+        <h2 className="text-h3 text-balance">Exports</h2>
+        <p className="mt-2 text-body-sm text-mid-grey">External and partner-share exports require sign-off before generation.</p>
+      </Card>
+    </AppShell>
   );
 }

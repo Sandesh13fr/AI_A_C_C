@@ -1,16 +1,17 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Rulebooks",
-};
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui/card";
 
 export default function RulebooksPage() {
   return (
-    <div className="mx-auto max-w-7xl p-5">
-      <h1 className="text-h2 mb-2">Rulebooks</h1>
-      <p className="text-body-sm text-mid-grey mb-6">
-        Author and manage custom advocacy standards above the legal floor.
-      </p>
-    </div>
+    <AppShell title="Rulebooks" subtitle="Versioned legal minimums, agency guidance, and custom advocacy rulebooks.">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {["Federal AWA baseline", "Custom advocacy standards"].map((name) => (
+          <Card key={name}>
+            <h2 className="text-h3 text-balance">{name}</h2>
+            <p className="mt-2 text-body-sm text-mid-grey">Draft rulebook workspace.</p>
+          </Card>
+        ))}
+      </div>
+    </AppShell>
   );
 }

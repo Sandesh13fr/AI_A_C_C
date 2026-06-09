@@ -29,7 +29,7 @@ const config: Config = {
         mono: ["JetBrains Mono", "monospace"],
       },
       fontSize: {
-        "display-xl": ["72px", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+        "display-xl": ["72px", { lineHeight: "1.1" }],
         h1: ["40px", { lineHeight: "1.2" }],
         "h1-lg": ["56px", { lineHeight: "1.15" }],
         h2: ["28px", { lineHeight: "1.25" }],

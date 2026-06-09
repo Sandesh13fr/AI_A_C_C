@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Review queue",
-};
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui/card";
 
 export default function ReviewPage() {
   return (
-    <div className="mx-auto max-w-7xl p-5">
-      <h1 className="text-h2 mb-2">Review queue</h1>
-      <p className="text-body-sm text-mid-grey mb-6">
-        Triage and review AI-assisted findings. Accept, dismiss, edit, or
-        comment before sign-off.
-      </p>
-    </div>
+    <AppShell title="Review" subtitle="Human review queue for findings, comments, edits, dismissals, and sign-off events.">
+      <Card>
+        <h2 className="text-h3 text-balance">Queue</h2>
+        <p className="mt-2 text-body-sm text-mid-grey">No pending review assignments are loaded in the local placeholder queue.</p>
+      </Card>
+    </AppShell>
   );
 }

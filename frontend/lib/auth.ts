@@ -10,10 +10,11 @@
 export type SignOffScope = "internal_use" | "external_publication" | "partner_share";
 
 export type AuthSession = {
+  accessToken: string;
   user: {
     id: string;
     email: string;
-    name: string;
+    name: string | null;
   };
   organisation: {
     id: string;

@@ -22,6 +22,8 @@ Desktop.ini
 *.key
 *.p12
 *.pfx
+.env.example
+
 
 # Logs and diagnostics
 *.log
@@ -49,6 +51,7 @@ env/
 ENV/
 build/
 dist/
+envi/
 *.egg-info/
 
 # Node / Next.js frontend
@@ -90,6 +93,7 @@ reports/generated/
 uploads/
 tmp/
 temp/
+reference/
 
 # Docker and local service state
 .docker/
@@ -102,3 +106,8 @@ postgres-data/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+#Development lore
+final_postgres_schema.sql
+agent-logs.md
+prompt.md

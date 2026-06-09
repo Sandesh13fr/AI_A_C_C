@@ -1,1 +1,190 @@
-﻿"""Placeholder module for future implementation."""
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_principal
+from app.core.permissions import Principal, can_access_organization
+from app.db.session import get_db
+from app.sample_data import SAMPLE_DOCUMENT
+from app.schemas.documents import DocumentListResponse, DocumentMetadataResponse, DocumentResponse
+
+
+router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+def _sample_document() -> DocumentResponse:
+    return DocumentResponse(**SAMPLE_DOCUMENT)
+
+
+@router.get("", response_model=DocumentListResponse)
+async def list_documents(
+    principal: Annotated[Principal, Depends(get_current_principal)],
+    db: Annotated[AsyncSession | None, Depends(get_db)],
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status_filter: str | None = Query(None, alias="status"),
+    doc_type: str | None = None,
+    organization_id: str | None = None,
+) -> DocumentListResponse:
+    if not can_access_organization(principal, organization_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Organization access denied")
+
+    if db is None:
+        doc = _sample_document()
+        return DocumentListResponse(items=[doc], total=1, page=page, page_size=page_size)
+
+    conditions = ["d.deleted_at IS NULL"]
+    bind: dict = {"limit": page_size, "offset": (page - 1) * page_size}
+    if organization_id:
+        conditions.append("(d.organization_id = CAST(:organization_id AS uuid) OR d.organization_id IS NULL)")
+        bind["organization_id"] = organization_id
+    if status_filter:
+        conditions.append("d.status = :status")
+        bind["status"] = status_filter
+    if doc_type:
+        conditions.append("d.doc_type = :doc_type")
+        bind["doc_type"] = doc_type
+    where_clause = " AND ".join(conditions)
+
+    rows = (
+        await db.execute(
+            text(
+                f"""
+                SELECT d.id::text, d.organization_id::text, d.title, d.filename, d.original_name,
+                       d.file_path, d.redacted_file_path, d.file_size, d.mime_type, d.doc_type,
+                       d.source_label, d.status, d.ingestion_stage, d.retrieval_summary,
+                       d.created_at, d.updated_at,
+                       m.issuer, m.jurisdiction_code, m.facility_name, m.facility_id,
+                       COALESCE(m.species, '{{}}') AS species,
+                       m.inspection_date, m.document_date, m.inspector_name, m.reference_number,
+                       COALESCE(m.welfare_categories, '{{}}') AS welfare_categories,
+                       COALESCE(m.facility_types, '{{}}') AS facility_types,
+                       COALESCE(m.industries, '{{}}') AS industries,
+                       COALESCE(m.extra, '{{}}'::jsonb) AS extra
+                FROM documents d
+                LEFT JOIN document_metadata m ON m.document_id = d.id
+                WHERE {where_clause}
+                ORDER BY d.created_at DESC
+                LIMIT :limit OFFSET :offset
+                """
+            ),
+            bind,
+        )
+    ).mappings().all()
+
+    items = [
+        DocumentResponse(
+            id=row["id"],
+            organization_id=row["organization_id"],
+            title=row["title"],
+            filename=row["filename"],
+            original_name=row["original_name"],
+            file_path=row["file_path"],
+            redacted_file_path=row["redacted_file_path"],
+            file_size=row["file_size"],
+            mime_type=row["mime_type"],
+            doc_type=row["doc_type"],
+            source_label=row["source_label"],
+            status=row["status"],
+            ingestion_stage=row["ingestion_stage"],
+            retrieval_summary=row["retrieval_summary"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+            metadata=DocumentMetadataResponse(
+                issuer=row["issuer"],
+                jurisdiction_code=row["jurisdiction_code"],
+                facility_name=row["facility_name"],
+                facility_id=row["facility_id"],
+                species=list(row["species"] or []),
+                inspection_date=row["inspection_date"],
+                document_date=row["document_date"],
+                inspector_name=row["inspector_name"],
+                reference_number=row["reference_number"],
+                welfare_categories=list(row["welfare_categories"] or []),
+                facility_types=list(row["facility_types"] or []),
+                industries=list(row["industries"] or []),
+                extra=row["extra"] or {},
+            ),
+        )
+        for row in rows
+    ]
+
+    return DocumentListResponse(items=items, total=len(items), page=page, page_size=page_size)
+
+
+@router.get("/{document_id}", response_model=DocumentResponse)
+async def get_document(
+    document_id: str,
+    _: Annotated[Principal, Depends(get_current_principal)],
+    db: Annotated[AsyncSession | None, Depends(get_db)],
+) -> DocumentResponse:
+    if db is None:
+        if document_id != SAMPLE_DOCUMENT["id"]:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        return _sample_document()
+
+    rows = (
+        await db.execute(
+            text(
+                """
+                SELECT d.id::text, d.organization_id::text, d.title, d.filename, d.original_name,
+                       d.file_path, d.redacted_file_path, d.file_size, d.mime_type, d.doc_type,
+                       d.source_label, d.status, d.ingestion_stage, d.retrieval_summary, d.raw_text,
+                       d.created_at, d.updated_at,
+                       m.issuer, m.jurisdiction_code, m.facility_name, m.facility_id,
+                       COALESCE(m.species, '{}') AS species,
+                       m.inspection_date, m.document_date, m.inspector_name, m.reference_number,
+                       COALESCE(m.welfare_categories, '{}') AS welfare_categories,
+                       COALESCE(m.facility_types, '{}') AS facility_types,
+                       COALESCE(m.industries, '{}') AS industries,
+                       COALESCE(m.extra, '{}'::jsonb) AS extra
+                FROM documents d
+                LEFT JOIN document_metadata m ON m.document_id = d.id
+                WHERE d.id = CAST(:document_id AS uuid) AND d.deleted_at IS NULL
+                LIMIT 1
+                """
+            ),
+            {"document_id": document_id},
+        )
+    ).mappings().all()
+    if not rows:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    row = rows[0]
+    return DocumentResponse(
+        id=row["id"],
+        organization_id=row["organization_id"],
+        title=row["title"],
+        filename=row["filename"],
+        original_name=row["original_name"],
+        file_path=row["file_path"],
+        redacted_file_path=row["redacted_file_path"],
+        file_size=row["file_size"],
+        mime_type=row["mime_type"],
+        doc_type=row["doc_type"],
+        source_label=row["source_label"],
+        status=row["status"],
+        ingestion_stage=row["ingestion_stage"],
+        retrieval_summary=row["retrieval_summary"],
+        raw_text=row["raw_text"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        metadata=DocumentMetadataResponse(
+            issuer=row["issuer"],
+            jurisdiction_code=row["jurisdiction_code"],
+            facility_name=row["facility_name"],
+            facility_id=row["facility_id"],
+            species=list(row["species"] or []),
+            inspection_date=row["inspection_date"],
+            document_date=row["document_date"],
+            inspector_name=row["inspector_name"],
+            reference_number=row["reference_number"],
+            welfare_categories=list(row["welfare_categories"] or []),
+            facility_types=list(row["facility_types"] or []),
+            industries=list(row["industries"] or []),
+            extra=row["extra"] or {},
+        ),
+    )

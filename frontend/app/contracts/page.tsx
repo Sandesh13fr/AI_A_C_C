@@ -1,17 +1,17 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Contract analysis",
-};
+import { AppShell } from "@/components/app-shell";
+import { Card } from "@/components/ui/card";
 
 export default function ContractsPage() {
   return (
-    <div className="mx-auto max-w-7xl p-5">
-      <h1 className="text-h2 mb-2">Contract analysis</h1>
-      <p className="text-body-sm text-mid-grey mb-6">
-        Analyse contracts for welfare commitments, audit rights, and missing
-        expected clauses.
-      </p>
-    </div>
+    <AppShell title="Contracts" subtitle="Clause extraction, weak commitments, audit rights, reporting obligations, and missing expected protections.">
+      <div className="grid gap-4 lg:grid-cols-3">
+        {["Clauses", "Commitments", "Missing Terms"].map((item) => (
+          <Card key={item}>
+            <h2 className="text-h3 text-balance">{item}</h2>
+            <p className="mt-2 text-body-sm text-mid-grey">Ready for contract-analysis outputs.</p>
+          </Card>
+        ))}
+      </div>
+    </AppShell>
   );
 }

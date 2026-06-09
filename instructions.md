@@ -1,5 +1,7 @@
 > **IMPORTANT:** Whenever working on any frontend, UI, or UX task — including components, pages, dashboards, modals, tables, forms, badges, drawers, buttons, copy, colour, typography, spacing, or any visual element — you **MUST** first read `.agents/skills/openpaws-design/skill.md` and follow its design tokens, component checklists, tone rules, and accessibility requirements. This applies to every single line of UI code or copy generated for this project.
 
+**Note:** Keep adding logs of each action to the agent-logs.md file with timestamp & thinking & approach & why & relevant details.
+
 ### 3.1 Mission
 
 Build the **production-grade AI Animal Welfare Compliance Checker** on top of the existing Option B intelligence-search foundation. Preserve the current search and grounded-chat behavior, but extend the platform into a governed, multi-tenant, rule-grounded document analysis product.
