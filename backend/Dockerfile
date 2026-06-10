@@ -13,7 +13,6 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
-COPY final_postgres_schema.sql /app/final_postgres_schema.sql
 
 EXPOSE 8000
 
