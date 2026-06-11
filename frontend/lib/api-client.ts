@@ -46,6 +46,9 @@ export type DocumentItem = {
   retrieval_summary: string | null;
   raw_text?: string | null;
   metadata: DocumentMetadata | null;
+  chunks?: Record<string, unknown>[];
+  topics?: string[];
+  related_rules?: RelatedRuleLink[];
 };
 
 export type DocumentListResponse = {
@@ -105,17 +108,22 @@ export type AnalysisRunResponse = {
 
 export type RuleListItem = {
   id: string;
-  canonical_id: string;
-  citation_label: string;
+  rule_code: string;
   title: string;
+  citation: string | null;
   jurisdiction_code: string;
-  source_type: string;
-  welfare_category: string;
+  agency_name: string | null;
+  source_code: string | null;
+  welfare_category: string | null;
   verification_status: string;
+  latest_version_preview: string | null;
   version_label: string | null;
   summary: string | null;
   chunk_count: number;
   precedent_link_count: number;
+  canonical_id: string | null;
+  citation_label: string | null;
+  source_type: string | null;
 };
 
 export type RuleListResponse = {
@@ -127,13 +135,16 @@ export type RuleListResponse = {
 
 export type RuleVersionDetail = {
   id: string;
-  version_label: string;
-  effective_start: string;
+  version_label: string | null;
+  effective_start: string | null;
   effective_end: string | null;
-  standard_text: string;
+  rule_text: string;
+  standard_text: string | null;
+  interpretation_notes: string | null;
   plain_language_summary: string | null;
   source_url: string | null;
   verification_status: string;
+  metadata: Record<string, unknown>;
 };
 
 export type RuleApplicabilityDetail = {
@@ -142,31 +153,54 @@ export type RuleApplicabilityDetail = {
   facility_types: string[];
   industries: string[];
   document_types: string[];
+  jurisdiction_code?: string | null;
+  activity_type?: string | null;
+  applicability_notes?: string | null;
 };
 
 export type RuleChunkDetail = {
   id: string;
   chunk_index: number;
-  text: string;
+  chunk_text: string;
+  text: string | null;
+  token_estimate?: number | null;
 };
 
 export type RulePrecedentLinkDetail = {
   id: string;
-  document_id: string;
+  document_id: string | null;
+  document_chunk_id: string | null;
   chunk_id: string | null;
   relationship_type: string;
+  note: string | null;
   notes: string | null;
   confidence: number | null;
+  linked_document_title?: string | null;
+  linked_document_type?: string | null;
+  linked_chunk?: {
+    id?: string | null;
+    document_id?: string | null;
+    document_title?: string | null;
+    chunk_text?: string | null;
+    chunk_index?: number | null;
+  } | null;
 };
 
 export type RuleDetailResponse = {
   id: string;
-  canonical_id: string;
-  citation_label: string;
+  rule_code: string;
   title: string;
+  citation: string | null;
   jurisdiction_code: string;
-  source_type: string;
-  welfare_category: string;
+  agency_name: string | null;
+  source_code: string | null;
+  welfare_category: string | null;
+  verification_status: string;
+  summary: string | null;
+  is_active: boolean;
+  canonical_id: string | null;
+  citation_label: string | null;
+  source_type: string | null;
   created_at: string | null;
   updated_at: string | null;
   latest_version: RuleVersionDetail | null;
@@ -178,12 +212,15 @@ export type RuleDetailResponse = {
 export type RelatedRuleLink = {
   link_id: string;
   rule_id: string;
-  canonical_id: string;
-  citation_label: string;
+  rule_code: string;
+  canonical_id: string | null;
+  citation: string | null;
+  citation_label: string | null;
   title: string;
   jurisdiction_code: string;
   welfare_category: string;
   relationship_type: string;
+  note: string | null;
   notes: string | null;
   confidence: number | null;
   verification_status: string;

@@ -75,9 +75,11 @@ def test_rules_list_endpoint_returns_valid_structure() -> None:
     assert "total" in payload
     for item in payload["items"]:
         assert "id" in item
+        assert "rule_code" in item
         assert "title" in item
+        assert "citation" in item
         assert "jurisdiction_code" in item
-        assert "welfare_category" in item
+        assert item["verification_status"] == "needs_review"
 
 
 def test_rules_search_and_filter_params_work() -> None:
@@ -87,6 +89,12 @@ def test_rules_search_and_filter_params_work() -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
+    search_response = client.get(
+        "/api/rules/search?q=veterinary",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert search_response.status_code == 200
+    assert search_response.json()["items"]
 
 
 def test_rule_detail_endpoint_returns_details() -> None:
@@ -103,8 +111,9 @@ def test_rule_detail_endpoint_returns_details() -> None:
     payload = response.json()
     assert payload["id"] == rule_id
     assert "title" in payload
-    assert "canonical_id" in payload
-    assert "citation_label" in payload
+    assert "rule_code" in payload
+    assert "citation" in payload
+    assert "latest_version" in payload
 
 
 def test_global_search_endpoint_works() -> None:
@@ -118,6 +127,7 @@ def test_global_search_endpoint_works() -> None:
     assert "documents" in payload
     assert "rules" in payload
     assert payload["query"] == "veterinary"
+    assert payload["rules"]
 
 
 def test_document_related_rules_endpoint_returns_structure() -> None:

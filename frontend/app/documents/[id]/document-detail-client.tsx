@@ -123,9 +123,10 @@ function RelatedRulesSection({ documentId }: { documentId: string }) {
               {link.title}
             </Link>
             <p className="mt-1 text-micro text-ink-soft">
-              {link.citation_label} · {link.relationship_type.replace(/_/g, " ")}
+              {link.citation ?? link.citation_label ?? "Citation unavailable"} · {link.relationship_type.replace(/_/g, " ")}
               {link.confidence ? ` · ${Math.round(link.confidence * 100)}%` : ""}
             </p>
+            {link.note && <p className="mt-1 text-micro text-ink-soft">{link.note}</p>}
           </div>
         ))}
       </CardContent>

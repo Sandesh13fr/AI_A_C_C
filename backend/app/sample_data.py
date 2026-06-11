@@ -65,10 +65,20 @@ SAMPLE_DOCUMENT = {
 
 SAMPLE_RULE = {
     "id": DEV_RULE_ID,
-    "canonical_id": "AWA-SAMPLE-1",
-    "citation_label": "Sample welfare standard",
-    "title": "Sample housing and care standard",
+    "rule_code": "VC-SEED-001",
+    "canonical_id": "VC-SEED-001",
+    "citation": "9 CFR placeholder - needs verification",
+    "citation_label": "9 CFR placeholder - needs verification",
+    "title": "Adequate veterinary care",
     "jurisdiction_code": "US-FED",
-    "welfare_category": "housing_environment",
-    "status": "placeholder",
+    "agency_name": "USDA APHIS Animal Care",
+    "source_code": "manual_seed",
+    "source_type": "manual_seed",
+    "welfare_category": "veterinary_care",
+    "verification_status": "needs_review",
+    "summary": (
+        "Seeded reviewer-aid rule covering adequate veterinary care. "
+        "Citation text is a placeholder and must be verified."
+    ),
+    "status": "needs_review",
 }

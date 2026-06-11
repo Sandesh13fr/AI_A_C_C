@@ -41,6 +41,9 @@ class DocumentResponse(ApiModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
     metadata: DocumentMetadataResponse | None = None
+    chunks: list[dict[str, Any]] = []
+    topics: list[str] = []
+    related_rules: list[dict[str, Any]] = []
 
 
 class DocumentListResponse(ApiModel):

@@ -26,6 +26,7 @@ export default function KnowledgeBasePage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [jurisdictionFilter, setJurisdictionFilter] = useState("");
+  const [verificationFilter, setVerificationFilter] = useState("");
 
   const fetchRules = useCallback(async () => {
     setLoading(true);
@@ -37,6 +38,7 @@ export default function KnowledgeBasePage() {
           q: search || undefined,
           category: categoryFilter || undefined,
           jurisdiction: jurisdictionFilter || undefined,
+          verification_status: verificationFilter || undefined,
         },
         session?.accessToken,
       );
@@ -46,7 +48,7 @@ export default function KnowledgeBasePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, categoryFilter, jurisdictionFilter]);
+  }, [search, categoryFilter, jurisdictionFilter, verificationFilter]);
 
   useEffect(() => {
     fetchRules();
@@ -87,6 +89,14 @@ export default function KnowledgeBasePage() {
                 <option value="US-FED">US Federal</option>
               </Select>
             </div>
+            <div className="w-[200px]">
+              <Select value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)}>
+                <option value="">All verification states</option>
+                <option value="needs_review">Needs Review</option>
+                <option value="verified">Verified</option>
+                <option value="draft">Draft</option>
+              </Select>
+            </div>
           </div>
 
           {loading ? (
@@ -111,7 +121,7 @@ export default function KnowledgeBasePage() {
                     <TableHeaderCell>Jurisdiction</TableHeaderCell>
                     <TableHeaderCell>Category</TableHeaderCell>
                     <TableHeaderCell>Status</TableHeaderCell>
-                    <TableHeaderCell>Verification</TableHeaderCell>
+                    <TableHeaderCell>Summary</TableHeaderCell>
                   </tr>
                 </TableHead>
                 <TableBody>
@@ -121,17 +131,17 @@ export default function KnowledgeBasePage() {
                         <Link href={`/knowledge-base/${rule.id}`} className="text-app-teal-deep hover:underline">
                           {rule.title}
                         </Link>
-                        <p className="mt-0.5 text-micro text-ink-soft">{rule.citation_label}</p>
+                        <p className="mt-0.5 text-micro text-ink-soft">{rule.citation ?? rule.citation_label ?? "Citation unavailable"}</p>
                       </TableCell>
                       <TableCell>{rule.jurisdiction_code}</TableCell>
-                      <TableCell>{titleCase(rule.welfare_category.replace(/_/g, " "))}</TableCell>
+                      <TableCell>{rule.welfare_category ? titleCase(rule.welfare_category.replace(/_/g, " ")) : "Unknown"}</TableCell>
                       <TableCell>
                         <VerificationBadge status={rule.verification_status} />
                       </TableCell>
                       <TableCell>
-                        {rule.version_label ? (
-                          <span className="text-micro text-ink-soft">v{rule.version_label}</span>
-                        ) : null}
+                        <p className="text-micro text-ink-soft">
+                          {rule.summary ?? rule.latest_version_preview ?? "No summary available."}
+                        </p>
                       </TableCell>
                     </TableRow>
                   ))}

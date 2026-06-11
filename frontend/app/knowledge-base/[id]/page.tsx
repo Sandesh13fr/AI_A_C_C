@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
-import { StatusPill } from "@/components/ui/status-pill";
 import { apiClient, type RuleDetailResponse } from "@/lib/api-client";
 import { getSession } from "@/lib/auth";
 import { titleCase } from "@/lib/utils";
@@ -57,8 +56,8 @@ export default function RuleDetailPage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <CardTitle>{rule.title}</CardTitle>
-                  <Badge variant={statusVariant(rule.latest_version?.verification_status ?? "draft")}>
-                    {rule.latest_version?.verification_status ?? "draft"}
+                  <Badge variant={statusVariant(rule.verification_status)}>
+                    {rule.verification_status}
                   </Badge>
                 </div>
               </CardHeader>
@@ -66,7 +65,7 @@ export default function RuleDetailPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-card border border-app-line bg-app-subtle p-4">
                     <p className="app-label">Citation</p>
-                    <p className="mt-2 text-body-sm text-ink">{rule.citation_label}</p>
+                    <p className="mt-2 text-body-sm text-ink">{rule.citation ?? rule.citation_label ?? "Citation unavailable"}</p>
                   </div>
                   <div className="rounded-card border border-app-line bg-app-subtle p-4">
                     <p className="app-label">Jurisdiction</p>
@@ -74,27 +73,38 @@ export default function RuleDetailPage() {
                   </div>
                   <div className="rounded-card border border-app-line bg-app-subtle p-4">
                     <p className="app-label">Category</p>
-                    <p className="mt-2 text-body-sm text-ink">{titleCase(rule.welfare_category.replace(/_/g, " "))}</p>
+                    <p className="mt-2 text-body-sm text-ink">
+                      {rule.welfare_category ? titleCase(rule.welfare_category.replace(/_/g, " ")) : "Unknown"}
+                    </p>
                   </div>
                   <div className="rounded-card border border-app-line bg-app-subtle p-4">
-                    <p className="app-label">Source / Agency</p>
-                    <p className="mt-2 text-body-sm text-ink">{titleCase(rule.source_type.replace(/_/g, " "))}</p>
+                    <p className="app-label">Agency / Source</p>
+                    <p className="mt-2 text-body-sm text-ink">
+                      {rule.agency_name ?? (rule.source_code ? titleCase(rule.source_code.replace(/_/g, " ")) : "Not provided")}
+                    </p>
                   </div>
                 </div>
+
+                {rule.summary && (
+                  <div className="rounded-card border border-app-line bg-app-subtle p-4">
+                    <p className="app-label">Summary</p>
+                    <p className="mt-2 text-body-sm text-ink-soft">{rule.summary}</p>
+                  </div>
+                )}
 
                 {rule.latest_version && (
                   <>
                     <div className="rounded-card border border-app-line bg-app-bg p-5">
                       <p className="app-label">Rule text</p>
                       <p className="mt-3 whitespace-pre-wrap text-body-sm text-ink">
-                        {rule.latest_version.standard_text}
+                        {rule.latest_version.rule_text}
                       </p>
                     </div>
 
-                    {rule.latest_version.plain_language_summary && (
+                    {rule.latest_version.interpretation_notes && (
                       <div className="rounded-card border border-app-line bg-app-subtle p-4">
-                        <p className="app-label">Plain language summary</p>
-                        <p className="mt-2 text-body-sm text-ink-soft">{rule.latest_version.plain_language_summary}</p>
+                        <p className="app-label">Interpretation notes</p>
+                        <p className="mt-2 text-body-sm text-ink-soft">{rule.latest_version.interpretation_notes}</p>
                       </div>
                     )}
 
@@ -129,7 +139,7 @@ export default function RuleDetailPage() {
                   {rule.chunks.map((chunk) => (
                     <div key={chunk.id} className="rounded-card border border-app-line bg-app-subtle p-4">
                       <p className="font-mono text-micro uppercase text-ink-soft">Chunk {chunk.chunk_index}</p>
-                      <p className="mt-2 text-body-sm text-ink">{chunk.text}</p>
+                      <p className="mt-2 text-body-sm text-ink">{chunk.chunk_text}</p>
                     </div>
                   ))}
                 </CardContent>
@@ -144,24 +154,30 @@ export default function RuleDetailPage() {
                   <CardTitle>Applicability</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {rule.applicability?.map((a) => (
-                    <div key={a.id} className="space-y-2">
-                      {a.species.length > 0 && (
+                  {rule.applicability.map((item) => (
+                    <div key={item.id} className="space-y-2">
+                      {item.species.length > 0 && (
                         <div>
                           <p className="app-label">Species</p>
-                          <p className="text-body-sm text-ink">{a.species.join(", ")}</p>
+                          <p className="text-body-sm text-ink">{item.species.join(", ")}</p>
                         </div>
                       )}
-                      {a.facility_types.length > 0 && (
+                      {item.facility_types.length > 0 && (
                         <div>
                           <p className="app-label">Facility types</p>
-                          <p className="text-body-sm text-ink">{a.facility_types.join(", ")}</p>
+                          <p className="text-body-sm text-ink">{item.facility_types.join(", ")}</p>
                         </div>
                       )}
-                      {a.industries.length > 0 && (
+                      {item.industries.length > 0 && (
                         <div>
                           <p className="app-label">Industries</p>
-                          <p className="text-body-sm text-ink">{a.industries.join(", ")}</p>
+                          <p className="text-body-sm text-ink">{item.industries.join(", ")}</p>
+                        </div>
+                      )}
+                      {item.applicability_notes && (
+                        <div>
+                          <p className="app-label">Notes</p>
+                          <p className="text-body-sm text-ink-soft">{item.applicability_notes}</p>
                         </div>
                       )}
                     </div>
@@ -178,14 +194,21 @@ export default function RuleDetailPage() {
                 <CardContent className="space-y-3">
                   {rule.precedent_links.map((link) => (
                     <div key={link.id} className="rounded-card border border-app-line bg-app-subtle p-3">
-                      <Link href={`/documents/${link.document_id}`} className="text-app-teal-deep text-body-sm hover:underline">
-                        Document {link.document_id.slice(0, 8)}
-                      </Link>
+                      {link.document_id ? (
+                        <Link href={`/documents/${link.document_id}`} className="text-app-teal-deep text-body-sm hover:underline">
+                          {link.linked_document_title ?? `Document ${link.document_id.slice(0, 8)}`}
+                        </Link>
+                      ) : (
+                        <p className="text-body-sm text-ink">{link.linked_document_title ?? "Related document"}</p>
+                      )}
                       <p className="mt-1 text-micro text-ink-soft">
                         {link.relationship_type.replace(/_/g, " ")}
                         {link.confidence ? ` · ${Math.round(link.confidence * 100)}% confidence` : ""}
                       </p>
-                      {link.notes && <p className="mt-1 text-micro text-ink-soft">{link.notes}</p>}
+                      {link.note && <p className="mt-1 text-micro text-ink-soft">{link.note}</p>}
+                      {link.linked_chunk?.chunk_text && (
+                        <p className="mt-2 text-micro text-ink-soft">{link.linked_chunk.chunk_text}</p>
+                      )}
                     </div>
                   ))}
                 </CardContent>
