@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from alembic import op
+from sqlalchemy import text
 
 
 revision = "0002_seed_veterinary_care_rules"
@@ -206,6 +207,21 @@ SEED_RULES = [
 def upgrade() -> None:
     conn = op.get_bind()
 
+    # Widen the CHECK constraint to allow 'needs_review' for seed rules
+    conn.execute(
+        text(
+            "ALTER TABLE regulatory_rule_versions "
+            "DROP CONSTRAINT IF EXISTS regulatory_rule_versions_verification_status_check"
+        )
+    )
+    conn.execute(
+        text(
+            "ALTER TABLE regulatory_rule_versions "
+            "ADD CONSTRAINT regulatory_rule_versions_verification_status_check "
+            "CHECK (verification_status IN ('draft', 'verified', 'deprecated', 'needs_review'))"
+        )
+    )
+
     for rule in SEED_RULES:
         rule_id = conn.execute(
             text("""
@@ -280,5 +296,16 @@ def downgrade() -> None:
             {"canonical_id": rule["canonical_id"]},
         )
 
-
-from sqlalchemy import text
+    conn.execute(
+        text(
+            "ALTER TABLE regulatory_rule_versions "
+            "DROP CONSTRAINT IF EXISTS regulatory_rule_versions_verification_status_check"
+        )
+    )
+    conn.execute(
+        text(
+            "ALTER TABLE regulatory_rule_versions "
+            "ADD CONSTRAINT regulatory_rule_versions_verification_status_check "
+            "CHECK (verification_status IN ('draft', 'verified', 'deprecated'))"
+        )
+    )

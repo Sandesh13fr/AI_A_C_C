@@ -119,7 +119,8 @@ async def hybrid_search(db: AsyncSession | None, params: SearchRequest) -> Searc
             WITH query AS (SELECT websearch_to_tsquery('english', :query) AS q),
             bm25 AS (
               SELECT c.document_id, max(ts_rank_cd(c.fts_vector, query.q, 32)) AS score
-              FROM chunks c, query
+              FROM chunks c
+              CROSS JOIN query
               JOIN documents d ON d.id = c.document_id
               LEFT JOIN document_metadata m ON m.document_id = d.id
               WHERE {where_clause} AND c.fts_vector @@ query.q
