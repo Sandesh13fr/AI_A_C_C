@@ -11,6 +11,8 @@ from app.core.permissions import Principal, can_access_organization
 from app.db.session import get_db
 from app.sample_data import SAMPLE_DOCUMENT
 from app.schemas.documents import DocumentListResponse, DocumentMetadataResponse, DocumentResponse
+from app.schemas.rules import RuleListItem
+from app.services.knowledge_base import get_rules_for_document_sql
 
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -188,3 +190,38 @@ async def get_document(
             extra=row["extra"] or {},
         ),
     )
+
+
+@router.get("/{document_id}/related-rules")
+async def get_document_related_rules(
+    document_id: str,
+    _: Annotated[Principal, Depends(get_current_principal)],
+    db: Annotated[AsyncSession | None, Depends(get_db)],
+) -> dict:
+    if db is None:
+        return {"items": [], "total": 0}
+
+    rows = (
+        await db.execute(
+            get_rules_for_document_sql(),
+            {"document_id": document_id},
+        )
+    ).mappings().all()
+
+    items = [
+        {
+            "link_id": row["link_id"],
+            "rule_id": row["rule_id"],
+            "canonical_id": row["canonical_id"],
+            "citation_label": row["citation_label"],
+            "title": row["title"],
+            "jurisdiction_code": row["jurisdiction_code"],
+            "welfare_category": row["welfare_category"],
+            "relationship_type": row["relationship_type"],
+            "notes": row["notes"],
+            "confidence": float(row["confidence"]) if row["confidence"] is not None else None,
+            "verification_status": row["verification_status"] or "draft",
+        }
+        for row in rows
+    ]
+    return {"items": items, "total": len(items)}

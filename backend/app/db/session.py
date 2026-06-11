@@ -24,12 +24,12 @@ def _driver_available(database_url: str) -> bool:
 def _is_railway_postgres_url(database_url: str) -> bool:
     parsed_url = make_url(database_url)
     host = (parsed_url.host or "").lower()
-    return host.endswith(".railway.app") or host.endswith(".railway.internal")
+    return host.endswith(".railway.app") or host.endswith(".railway.internal") or host.endswith(".rlwy.net")
 
 
 def _async_connect_args(database_url: str) -> dict[str, Any]:
     if _is_railway_postgres_url(database_url):
-        return {"ssl": True}
+        return {"ssl": "require"}
     return {}
 
 

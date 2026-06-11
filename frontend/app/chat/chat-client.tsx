@@ -2,7 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
+import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
 import { getSession } from "@/lib/auth";
 
@@ -12,8 +15,10 @@ export function ChatClient() {
   const [message, setMessage] = useState("What observations are supported by this document?");
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function ask() {
+    setLoading(true);
     setError(null);
     try {
       const session = getSession();
@@ -21,33 +26,47 @@ export function ChatClient() {
       setAnswer(response.answer);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chat request failed");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       <Card>
-        <label className="block text-body-sm">
-          Message
-          <textarea
-            className="mt-1 min-h-32 w-full rounded-button border border-dark-border bg-dark-surface px-3 py-2"
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-          />
-        </label>
-        <button className="mt-4 rounded-button bg-teal px-4 py-2 text-body-sm font-semibold text-white" onClick={ask}>
-          Ask
-        </button>
-        {error ? <p className="mt-3 text-body-sm text-coral">{error}</p> : null}
-        {answer ? (
-          <div className="mt-5 rounded-card border border-dark-border bg-dark-surface p-4">
-            <p className="text-body-sm text-pretty">{answer}</p>
-          </div>
-        ) : null}
+        <CardHeader>
+          <CardTitle>Document-scoped chat</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Notice title="Scope" tone="warning">
+            Chat remains grounded to the selected document and cited source context. This surface must not be used as a global legal chatbot.
+          </Notice>
+          <label className="block">
+            <span className="app-label">Message</span>
+            <Textarea className="mt-2" value={message} onChange={(event) => setMessage(event.target.value)} />
+          </label>
+          <Button loading={loading} onClick={ask}>
+            {loading ? "Asking" : "Ask grounded question"}
+          </Button>
+          {error ? <Notice title="Chat error">{error}</Notice> : null}
+          {answer ? (
+            <div className="rounded-card border border-app-line bg-app-bg px-4 py-4">
+              <p className="app-label">Answer</p>
+              <p className="mt-3 text-body-sm text-ink">{answer}</p>
+            </div>
+          ) : null}
+        </CardContent>
       </Card>
+
       <Card>
-        <h2 className="text-h3 text-balance">Scope</h2>
-        <p className="mt-2 break-all font-mono text-micro text-mid-grey">{documentId}</p>
+        <CardHeader>
+          <CardTitle>Current context</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-body-sm text-ink-soft">Document scope</p>
+          <p className="break-all font-mono text-body-sm text-ink">{documentId}</p>
+          <p className="text-body-sm text-ink-soft">Returned citations and snippets can be rendered here when the backend provides richer chat payloads.</p>
+        </CardContent>
       </Card>
     </div>
   );

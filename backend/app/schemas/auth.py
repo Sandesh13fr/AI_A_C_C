@@ -5,6 +5,12 @@ from pydantic import BaseModel
 from app.schemas.common import ApiModel
 
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str | None = None
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

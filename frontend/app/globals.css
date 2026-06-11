@@ -4,32 +4,78 @@
 
 @layer base {
   :root {
-    --color-black: #000000;
-    --color-white: #FFFFFF;
-    --color-teal: #006C67;
-    --color-mid-grey: #888888;
-    --color-coral: #FF8552;
-    --color-gold: #D19900;
-    --color-peach: #FFE1D1;
-    --color-teal-glow: #00D7C8;
-    --color-dark-surface: #070909;
-    --color-dark-card: #101414;
-    --color-dark-border: #1E2B2A;
+    color-scheme: light;
+    --app-bg: #f4f6f4;
+    --app-panel: #ffffff;
+    --app-line: #d7e0e6;
+    --app-line-strong: #a8b6c1;
+    --app-subtle: #ebf0ee;
+    --ink: #121b22;
+    --ink-soft: #5a6872;
+    --app-teal: #1f6b63;
+    --app-teal-deep: #153d39;
+    --app-mint: #dcede7;
+    --app-gold: #a9751a;
+    --app-gold-soft: #f6e9c9;
+    --app-coral: #b45d45;
+    --app-coral-soft: #f5e0da;
+    --app-success: #295e45;
+    --app-sky: #ddeaf1;
+  }
+
+  * {
+    @apply border-app-line;
   }
 
   html {
-    scroll-behavior: smooth;
+    @apply bg-app-bg font-sans text-ink;
   }
 
   body {
-    font-family: Space Grotesk, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    @apply bg-app-bg text-body text-ink;
+    font-feature-settings: "ss01" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-balance;
+  }
+
+  p,
+  li,
+  dd {
+    @apply text-pretty;
+  }
+
+  a {
+    @apply transition-colors;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-app-teal/30 ring-offset-2 ring-offset-app-bg;
+  }
+
+  ::selection {
+    background: rgba(31, 107, 99, 0.18);
   }
 }
 
 @layer components {
-  .finding-card {
-    @apply border border-dark-border/20 dark:border-dark-border rounded-[6px] p-5 bg-white dark:bg-dark-card;
+  .app-panel {
+    @apply rounded-card border border-app-line bg-app-panel shadow-panel;
+  }
+
+  .app-chip {
+    @apply inline-flex items-center gap-2 rounded-badge border border-app-line bg-app-subtle px-2.5 py-1 font-mono text-micro uppercase text-ink-soft;
+  }
+
+  .app-label {
+    @apply text-label uppercase text-ink-soft;
   }
 }

@@ -8,14 +8,58 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_principal
 from app.core.rate_limit import enforce_rate_limit
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.db.models.users import User
 from app.db.session import get_db
 from app.sample_data import DEV_USER
-from app.schemas.auth import LoginRequest, TokenResponse, UserResponse
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/register", response_model=TokenResponse, status_code=201)
+async def register(
+    body: RegisterRequest,
+    request: Request,
+    db: Annotated[AsyncSession | None, Depends(get_db)],
+) -> TokenResponse:
+    await enforce_rate_limit(request, bucket="register", limit_per_minute=10)
+
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not available")
+
+    result = await db.execute(select(User).where(User.email == body.email))
+    if result.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    user = User(
+        email=body.email,
+        hashed_password=hash_password(body.password),
+        full_name=body.full_name,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    token = create_access_token(
+        str(user.id),
+        {
+            "email": user.email,
+            "global_role": user.global_role,
+            "organization_id": None,
+            "org_role": None,
+        },
+    )
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=str(user.id),
+            email=user.email,
+            full_name=user.full_name,
+            global_role=user.global_role,
+        ),
+    )
 
 
 @router.post("/login", response_model=TokenResponse)

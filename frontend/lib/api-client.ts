@@ -103,6 +103,107 @@ export type AnalysisRunResponse = {
   disclaimer: string;
 };
 
+export type RuleListItem = {
+  id: string;
+  canonical_id: string;
+  citation_label: string;
+  title: string;
+  jurisdiction_code: string;
+  source_type: string;
+  welfare_category: string;
+  verification_status: string;
+  version_label: string | null;
+  summary: string | null;
+  chunk_count: number;
+  precedent_link_count: number;
+};
+
+export type RuleListResponse = {
+  items: RuleListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type RuleVersionDetail = {
+  id: string;
+  version_label: string;
+  effective_start: string;
+  effective_end: string | null;
+  standard_text: string;
+  plain_language_summary: string | null;
+  source_url: string | null;
+  verification_status: string;
+};
+
+export type RuleApplicabilityDetail = {
+  id: string;
+  species: string[];
+  facility_types: string[];
+  industries: string[];
+  document_types: string[];
+};
+
+export type RuleChunkDetail = {
+  id: string;
+  chunk_index: number;
+  text: string;
+};
+
+export type RulePrecedentLinkDetail = {
+  id: string;
+  document_id: string;
+  chunk_id: string | null;
+  relationship_type: string;
+  notes: string | null;
+  confidence: number | null;
+};
+
+export type RuleDetailResponse = {
+  id: string;
+  canonical_id: string;
+  citation_label: string;
+  title: string;
+  jurisdiction_code: string;
+  source_type: string;
+  welfare_category: string;
+  created_at: string | null;
+  updated_at: string | null;
+  latest_version: RuleVersionDetail | null;
+  applicability: RuleApplicabilityDetail[];
+  chunks: RuleChunkDetail[];
+  precedent_links: RulePrecedentLinkDetail[];
+};
+
+export type RelatedRuleLink = {
+  link_id: string;
+  rule_id: string;
+  canonical_id: string;
+  citation_label: string;
+  title: string;
+  jurisdiction_code: string;
+  welfare_category: string;
+  relationship_type: string;
+  notes: string | null;
+  confidence: number | null;
+  verification_status: string;
+};
+
+export type DocumentRelatedRulesResponse = {
+  items: RelatedRuleLink[];
+  total: number;
+};
+
+export type SearchGroupedResponse = {
+  query: string;
+  documents: Record<string, unknown>[];
+  chunks: Record<string, unknown>[];
+  rules: RuleListItem[];
+  total_documents: number;
+  total_chunks: number;
+  total_rules: number;
+};
+
 export type ChatAnswerResponse = {
   answer: string;
   citations: Array<Record<string, unknown>>;
@@ -149,7 +250,25 @@ export const apiClient = {
   createAnalysisRun: (body: Record<string, unknown>, token?: string | null) =>
     request<AnalysisRunResponse>("/analysis-runs", { method: "POST", body, token }),
   getAnalysisRun: (id: string, token?: string | null) => request<AnalysisRunResponse>(`/analysis-runs/${id}`, { token }),
-  listRules: (token?: string | null) => request<Record<string, unknown>>("/rules", { token }),
+  listRules: (params?: { q?: string; jurisdiction?: string; category?: string; verification_status?: string; page?: number; page_size?: number }, token?: string | null) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set("q", params.q);
+    if (params?.jurisdiction) search.set("jurisdiction", params.jurisdiction);
+    if (params?.category) search.set("category", params.category);
+    if (params?.verification_status) search.set("verification_status", params.verification_status);
+    if (params?.page) search.set("page", String(params.page));
+    if (params?.page_size) search.set("page_size", String(params.page_size));
+    const qs = search.toString();
+    return request<RuleListResponse>(`/rules${qs ? `?${qs}` : ""}`, { token });
+  },
+  getRule: (id: string, token?: string | null) => request<RuleDetailResponse>(`/rules/${id}`, { token }),
+  getDocumentRelatedRules: (documentId: string, token?: string | null) =>
+    request<DocumentRelatedRulesResponse>(`/documents/${documentId}/related-rules`, { token }),
+  globalSearch: (q: string, limit?: number, token?: string | null) => {
+    const search = new URLSearchParams({ q });
+    if (limit) search.set("limit", String(limit));
+    return request<SearchGroupedResponse>(`/search?${search.toString()}`, { token });
+  },
   listRulebooks: (token?: string | null) => request<Record<string, unknown>>("/rulebooks", { token }),
   reviewQueue: (token?: string | null) => request<Record<string, unknown>>("/review/queue", { token }),
   listExports: (token?: string | null) => request<Record<string, unknown>>("/exports", { token }),

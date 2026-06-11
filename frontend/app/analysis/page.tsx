@@ -1,16 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { Card } from "@/components/ui/card";
+import { FindingCard } from "@/components/domain/finding-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
 import { apiClient, type AnalysisRunResponse } from "@/lib/api-client";
 import { getSession } from "@/lib/auth";
+import { sampleFindings } from "@/lib/mock-data";
+import { titleCase } from "@/lib/utils";
 
 export default function AnalysisPage() {
   const [run, setRun] = useState<AnalysisRunResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function createRun() {
+    setLoading(true);
     setError(null);
     try {
       const session = getSession();
@@ -25,31 +33,52 @@ export default function AnalysisPage() {
       setRun(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create analysis run");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <AppShell title="Analysis" subtitle="Analyzer runs produce only potential risks, possible gaps, weak commitments, ambiguous language, and human-review items.">
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <h2 className="text-h3 text-balance">Create Run</h2>
-          <button className="mt-4 rounded-button bg-teal px-4 py-2 text-body-sm font-semibold text-white" onClick={createRun}>
-            Queue sample run
-          </button>
-          {error ? <p className="mt-3 text-body-sm text-coral">{error}</p> : null}
-          {run ? (
-            <a className="mt-4 block rounded-card border border-dark-border bg-dark-surface p-4" href={`/analysis/${run.id}`}>
-              <span className="font-mono text-micro text-mid-grey">{run.status}</span>
-              <span className="mt-1 block text-body-sm">{run.analysis_type} / {run.jurisdiction_code}</span>
-            </a>
-          ) : null}
-        </Card>
-        <Card>
-          <h2 className="text-h3 text-balance">Governance</h2>
-          <p className="mt-2 text-body-sm text-mid-grey text-pretty">
-            External use requires reviewer sign-off and the export disclaimer.
-          </p>
-        </Card>
+    <AppShell title="Analysis" subtitle="Queue and review decision-support runs that surface potential risks, possible gaps, and other reviewer aids.">
+      <div className="space-y-6">
+        <Notice title="Guardrail" tone="warning">
+          Analysis output must remain framed as decision-support output. This screen avoids legal-determination language and keeps reviewer sign-off front and center.
+        </Notice>
+
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create run</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-body-sm text-ink-soft">
+                The existing backend run-creation endpoint is preserved. This screen wraps it with the new shell and review-safe language.
+              </p>
+              <Button loading={loading} onClick={createRun}>
+                {loading ? "Queueing run" : "Queue sample run"}
+              </Button>
+              {run ? (
+                <Link href={`/analysis/${run.id}`} className="block rounded-card border border-app-line bg-app-bg px-4 py-3">
+                  <p className="app-label">Run created</p>
+                  <p className="mt-2 text-body-sm text-ink">{titleCase(run.analysis_type)} · {run.jurisdiction_code}</p>
+                  <p className="mt-1 text-body-sm text-ink-soft">{titleCase(run.status)}</p>
+                </Link>
+              ) : null}
+              {error ? <Notice title="Analysis error">{error}</Notice> : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Expected review surface</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sampleFindings.map((finding) => (
+                <FindingCard key={finding.id} finding={finding} />
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );
