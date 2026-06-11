@@ -21,20 +21,29 @@ def _driver_available(database_url: str) -> bool:
     return True
 
 
-def _is_railway_postgres_url(database_url: str) -> bool:
+def _railway_postgres_host(database_url: str) -> str:
     parsed_url = make_url(database_url)
-    host = (parsed_url.host or "").lower()
-    return host.endswith(".railway.app") or host.endswith(".railway.internal") or host.endswith(".rlwy.net")
+    return (parsed_url.host or "").lower()
+
+
+def _is_railway_postgres_internal_url(database_url: str) -> bool:
+    host = _railway_postgres_host(database_url)
+    return host.endswith(".railway.internal")
+
+
+def _is_railway_postgres_public_url(database_url: str) -> bool:
+    host = _railway_postgres_host(database_url)
+    return host.endswith(".railway.app") or host.endswith(".rlwy.net")
 
 
 def _async_connect_args(database_url: str) -> dict[str, Any]:
-    if _is_railway_postgres_url(database_url):
+    if _is_railway_postgres_public_url(database_url):
         return {"ssl": "require"}
     return {}
 
 
 def _sync_connect_args(database_url: str) -> dict[str, Any]:
-    if _is_railway_postgres_url(database_url):
+    if _is_railway_postgres_public_url(database_url):
         return {"sslmode": "require"}
     return {}
 

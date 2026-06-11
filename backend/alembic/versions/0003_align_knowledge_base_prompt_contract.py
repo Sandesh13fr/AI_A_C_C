@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sqlalchemy import text
 from alembic import op
 
 
@@ -161,44 +162,46 @@ def upgrade() -> None:
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_rule_precedent_links_document_id ON rule_precedent_links(document_id);")
     conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS idx_rule_precedent_links_document_chunk_id ON rule_precedent_links(document_chunk_id);")
 
-    conn.exec_driver_sql(
-        """
-        INSERT INTO rule_precedent_links (rule_version_id, rule_id, document_id, chunk_id, document_chunk_id, relationship_type, note, confidence)
-        SELECT
-            rv.id,
-            r.id,
-            matched.document_id,
-            matched.chunk_id,
-            matched.chunk_id,
-            'related_source',
-            'Seeded keyword match between veterinary-care rule text and an ingested document chunk.',
-            0.75
-        FROM regulatory_rules r
-        JOIN regulatory_rule_versions rv ON rv.rule_id = r.id
-        JOIN LATERAL (
-            SELECT c.document_id, c.id AS chunk_id
-            FROM chunks c
-            WHERE
-                c.raw_text ILIKE '%veterinary%' OR
-                c.raw_text ILIKE '%veterinarian%' OR
-                c.raw_text ILIKE '%medical care%' OR
-                c.raw_text ILIKE '%adequate veterinary care%' OR
-                c.raw_text ILIKE '%treatment%' OR
-                c.raw_text ILIKE '%health%' OR
-                c.raw_text ILIKE '%program of veterinary care%'
-            ORDER BY c.created_at DESC
-            LIMIT 1
-        ) matched ON true
-        WHERE r.welfare_category = 'veterinary_care'
-          AND COALESCE(r.source_code, r.source_type) IN ('manual_seed', 'ecfr', 'federal_cfr')
-          AND NOT EXISTS (
-              SELECT 1
-              FROM rule_precedent_links existing
-              WHERE existing.rule_id = r.id
-                AND existing.document_id = matched.document_id
-                AND COALESCE(existing.document_chunk_id, existing.chunk_id) = matched.chunk_id
-          )
-        """
+    conn.execute(
+        text(
+            """
+            INSERT INTO rule_precedent_links (rule_version_id, rule_id, document_id, chunk_id, document_chunk_id, relationship_type, note, confidence)
+            SELECT
+                rv.id,
+                r.id,
+                matched.document_id,
+                matched.chunk_id,
+                matched.chunk_id,
+                'related_source',
+                'Seeded keyword match between veterinary-care rule text and an ingested document chunk.',
+                0.75
+            FROM regulatory_rules r
+            JOIN regulatory_rule_versions rv ON rv.rule_id = r.id
+            JOIN LATERAL (
+                SELECT c.document_id, c.id AS chunk_id
+                FROM chunks c
+                WHERE
+                    c.raw_text ILIKE '%veterinary%' OR
+                    c.raw_text ILIKE '%veterinarian%' OR
+                    c.raw_text ILIKE '%medical care%' OR
+                    c.raw_text ILIKE '%adequate veterinary care%' OR
+                    c.raw_text ILIKE '%treatment%' OR
+                    c.raw_text ILIKE '%health%' OR
+                    c.raw_text ILIKE '%program of veterinary care%'
+                ORDER BY c.created_at DESC
+                LIMIT 1
+            ) matched ON true
+            WHERE r.welfare_category = 'veterinary_care'
+              AND COALESCE(r.source_code, r.source_type) IN ('manual_seed', 'ecfr', 'federal_cfr')
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM rule_precedent_links existing
+                  WHERE existing.rule_id = r.id
+                    AND existing.document_id = matched.document_id
+                    AND COALESCE(existing.document_chunk_id, existing.chunk_id) = matched.chunk_id
+              )
+            """
+        )
     )
 
 

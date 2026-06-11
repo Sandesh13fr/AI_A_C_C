@@ -20,7 +20,7 @@ Use separate Railway services for:
 - storage provider variables
 - `OPENROUTER_API_KEY` or compatible provider key when model-backed features are enabled
 
-If Railway gives you a standard Postgres URL, paste it into `DATABASE_URL`. The backend normalizes that URL for async access and derives a sync URL for Alembic when `SYNC_DATABASE_URL` is not set.
+If Railway gives you a public Postgres proxy URL such as `*.rlwy.net` or `*.railway.app`, paste it into `DATABASE_URL` and the backend will enforce SSL automatically. If Railway injects a private-network URL such as `*.railway.internal`, paste it as-is; the backend will not force SSL for that hostname and will derive a matching sync URL for Alembic when `SYNC_DATABASE_URL` is not set.
 
 ## Release Steps
 

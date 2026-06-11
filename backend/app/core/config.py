@@ -14,10 +14,23 @@ except Exception:  # pragma: no cover - fallback for lean local environments
         pass
 
 
-def _is_railway_postgres_url(database_url: str) -> bool:
+def _railway_postgres_host(database_url: str) -> str:
     parsed_url = make_url(database_url)
-    host = (parsed_url.host or "").lower()
-    return host.endswith(".railway.app") or host.endswith(".railway.internal") or host.endswith(".rlwy.net")
+    return (parsed_url.host or "").lower()
+
+
+def _is_railway_postgres_internal_url(database_url: str) -> bool:
+    host = _railway_postgres_host(database_url)
+    return host.endswith(".railway.internal")
+
+
+def _is_railway_postgres_public_url(database_url: str) -> bool:
+    host = _railway_postgres_host(database_url)
+    return host.endswith(".railway.app") or host.endswith(".rlwy.net")
+
+
+def _is_railway_postgres_url(database_url: str) -> bool:
+    return _is_railway_postgres_public_url(database_url) or _is_railway_postgres_internal_url(database_url)
 
 
 def _normalize_async_database_url(database_url: str) -> str:
@@ -33,7 +46,9 @@ def _normalize_sync_database_url(database_url: str) -> str:
     parsed_url = make_url(database_url)
     if parsed_url.drivername in {"postgres", "postgresql+asyncpg", "postgresql+psycopg2", "postgresql+psycopg"}:
         parsed_url = parsed_url.set(drivername="postgresql")
-    if _is_railway_postgres_url(str(parsed_url)) and "ssl" not in parsed_url.query and "sslmode" not in parsed_url.query:
+    if _is_railway_postgres_internal_url(str(parsed_url)):
+        parsed_url = parsed_url.set(query={key: value for key, value in parsed_url.query.items() if key not in {"ssl", "sslmode"}})
+    elif _is_railway_postgres_public_url(str(parsed_url)) and "ssl" not in parsed_url.query and "sslmode" not in parsed_url.query:
         parsed_url = parsed_url.set(query={**parsed_url.query, "sslmode": "require"})
     return parsed_url.render_as_string(hide_password=False)
 
