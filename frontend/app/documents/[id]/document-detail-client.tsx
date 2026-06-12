@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,12 +12,14 @@ import { DocumentMetadataPanel } from "@/components/domain/document-metadata-pan
 import { GovernanceNote } from "@/components/domain/governance-note";
 import { StatusBadge } from "@/components/domain/status-badge";
 import { Icon } from "@/components/icon";
-import { apiClient, type DocumentItem, type RelatedRuleLink } from "@/lib/api-client";
+import { apiClient, type DocumentItem, type RelatedRuleItem } from "@/lib/api-client";
 import { getSession } from "@/lib/auth";
 import { titleCase } from "@/lib/utils";
 
 export function DocumentDetailClient({ id }: { id: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") ?? undefined;
   const [document, setDocument] = useState<DocumentItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +159,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
           </div>
           <div className="space-y-6">
             <DocumentMetadataPanel document={document} />
-            <RelatedRulesPanel documentId={id} />
+            <RelatedRulesPanel documentId={id} query={query} />
             <div className="surface p-4">
               <p className="text-label uppercase text-ink-500">Next actions</p>
               <div className="mt-3 space-y-2">
@@ -200,18 +202,18 @@ export function DocumentDetailClient({ id }: { id: string }) {
   );
 }
 
-function RelatedRulesPanel({ documentId }: { documentId: string }) {
-  const [rules, setRules] = useState<RelatedRuleLink[]>([]);
+function RelatedRulesPanel({ documentId, query }: { documentId: string; query?: string }) {
+  const [rules, setRules] = useState<RelatedRuleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const session = getSession();
     apiClient
-      .getDocumentRelatedRules(documentId, session?.accessToken)
+      .getDocumentRelatedRules(documentId, { q: query }, session?.accessToken)
       .then((res) => setRules(res.items))
       .catch(() => setRules([]))
       .finally(() => setLoading(false));
-  }, [documentId]);
+  }, [documentId, query]);
 
   if (loading) {
     return (
@@ -233,18 +235,34 @@ function RelatedRulesPanel({ documentId }: { documentId: string }) {
     <div className="surface p-4">
       <p className="text-label uppercase text-ink-500">Related rules ({rules.length})</p>
       <ul className="mt-3 space-y-3">
-        {rules.map((link) => (
-          <li key={link.link_id} className="rounded-sm border border-border-subtle p-3">
+        {rules.map((item, i) => (
+          <li key={item.rule_id + String(i)} className="rounded-sm border border-border-subtle p-3">
             <Link
-              href={`/knowledge-base/${link.rule_id}`}
+              href={item.href || `/knowledge-base/${item.rule_id}`}
               className="text-body-sm font-medium text-ink-900 hover:text-brand"
             >
-              {link.title}
+              {item.title}
             </Link>
-            <p className="mt-1 font-mono text-mono-sm text-ink-500">
-              {link.citation ?? link.citation_label ?? "—"} · {link.relationship_type.replace(/_/g, " ")}
-              {link.confidence ? ` · ${Math.round(link.confidence * 100)}%` : ""}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-mono-sm text-ink-500">
+              {item.citation_label ? <span>{item.citation_label}</span> : null}
+              <span className="capitalize">{item.relationship_type.replace(/_/g, " ")}</span>
+              {item.welfare_category ? <span className="chip">{item.welfare_category}</span> : null}
+              <span className="chip">{Math.round(item.score * 100)}% score</span>
+              <span className={"chip " + (item.applicability_status === "applies" ? "text-green-700 bg-green-50" : "text-amber-700 bg-amber-50")}>{item.applicability_status.replace(/_/g, " ")}</span>
+            </div>
+            {item.reason ? (
+              <p className="mt-1 text-body-xs text-ink-500 italic">{item.reason}</p>
+            ) : null}
+            {item.matched_document_excerpt ? (
+              <p className="mt-1 text-body-xs text-ink-500">
+                <span className="font-medium text-ink-700">Document:</span> {item.matched_document_excerpt}
+              </p>
+            ) : null}
+            {item.matched_rule_excerpt ? (
+              <p className="mt-1 text-body-xs text-ink-500">
+                <span className="font-medium text-ink-700">Rule:</span> {item.matched_rule_excerpt}
+              </p>
+            ) : null}
           </li>
         ))}
       </ul>

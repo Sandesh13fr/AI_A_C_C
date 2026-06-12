@@ -150,3 +150,41 @@ class SearchGroupedResponse(ApiModel):
     total_documents: int = 0
     total_chunks: int = 0
     total_rules: int = 0
+
+
+# Relationship types emitted by the document-related-rules endpoint.
+RELATIONSHIP_DIRECT_PRECEDENT = "direct_precedent"
+RELATIONSHIP_CATEGORY_MATCH = "category_match"
+RELATIONSHIP_TEXT_OVERLAP = "text_overlap"
+RELATIONSHIP_SEMANTIC_MATCH = "semantic_match"
+RELATIONSHIP_BROAD_MATCH = "broad_match"
+
+# Applicability verdicts surfaced for the reviewer. None of these are legal conclusions.
+APPLICABILITY_APPLIES = "applies"
+APPLICABILITY_LIKELY = "likely_applies"
+APPLICABILITY_NEEDS_REVIEW = "needs_review"
+APPLICABILITY_UNKNOWN = "unknown"
+
+
+class RelatedRuleItem(ApiModel):
+    rule_id: str
+    rule_version_id: str | None = None
+    title: str
+    citation_label: str | None = None
+    welfare_category: str | None = None
+    jurisdiction_code: str | None = None
+    verification_status: str
+    score: float
+    relationship_type: str
+    reason: str
+    matched_document_excerpt: str | None = None
+    matched_rule_excerpt: str | None = None
+    applicability_status: str
+    href: str
+
+
+class RelatedRulesResponse(ApiModel):
+    items: list[RelatedRuleItem]
+    total: int
+    document_id: str | None = None
+    query: str | None = None

@@ -11,7 +11,11 @@ from app.core.permissions import Principal, can_access_organization
 from app.db.session import get_db
 from app.sample_data import SAMPLE_DOCUMENT
 from app.schemas.documents import DocumentListResponse, DocumentMetadataResponse, DocumentResponse
-from app.services.knowledge_base import get_rules_for_document_sql
+from app.schemas.rules import RelatedRulesResponse
+from app.services.knowledge_base import (
+    get_related_rules_for_document,
+    get_rules_for_document_sql,
+)
 
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -276,41 +280,25 @@ async def get_document(
     )
 
 
-@router.get("/{document_id}/related-rules")
+@router.get("/{document_id}/related-rules", response_model=RelatedRulesResponse)
 async def get_document_related_rules(
     document_id: str,
     _: Annotated[Principal, Depends(get_current_principal)],
     db: Annotated[AsyncSession | None, Depends(get_db)],
-) -> dict:
-    if db is None:
-        return {
-            "items": [
-                {
-                    "link_id": "00000000-0000-4000-8000-000000000014",
-                    "rule_id": "00000000-0000-4000-8000-000000000005",
-                    "rule_code": "VC-SEED-001",
-                    "canonical_id": "VC-SEED-001",
-                    "citation": "9 CFR placeholder - needs verification",
-                    "citation_label": "9 CFR placeholder - needs verification",
-                    "title": "Adequate veterinary care",
-                    "jurisdiction_code": "US-FED",
-                    "welfare_category": "veterinary_care",
-                    "relationship_type": "related_source",
-                    "note": "Seeded relationship for offline smoke testing.",
-                    "notes": "Seeded relationship for offline smoke testing.",
-                    "confidence": 0.75,
-                    "verification_status": "needs_review",
-                }
-            ],
-            "total": 1,
-        }
+    q: str | None = Query(None, min_length=1, max_length=500, description="Optional search query to bias the related rules."),
+    limit: int = Query(5, ge=1, le=20, description="Maximum number of related rules to return."),
+) -> RelatedRulesResponse:
+    """Return citation-backed, deterministic related rules for a document.
 
-    rows = (
-        await db.execute(
-            get_rules_for_document_sql(),
-            {"document_id": document_id},
-        )
-    ).mappings().all()
-
-    items = _build_related_rule_items(rows)
-    return {"items": items, "total": len(items)}
+    Every returned item maps to an existing ``regulatory_rules`` row.
+    Scoring order:
+        1. Direct precedent links (``rule_precedent_links``).
+        2. Text overlap between document content and rule text / rule chunks.
+        3. Category / jurisdiction / species applicability match.
+    """
+    return await get_related_rules_for_document(
+        db=db,
+        document_id=document_id,
+        query=q,
+        limit=limit,
+    )

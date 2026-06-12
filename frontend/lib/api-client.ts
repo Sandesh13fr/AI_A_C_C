@@ -65,7 +65,6 @@ export type DocumentItem = {
   metadata: DocumentMetadata | null;
   chunks?: DocumentChunk[];
   topics?: string[];
-  related_rules?: RelatedRuleLink[];
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -278,26 +277,28 @@ export type RuleDetailResponse = {
   precedent_links: RulePrecedentLinkDetail[];
 };
 
-export type RelatedRuleLink = {
-  link_id: string;
+export type RelatedRuleItem = {
   rule_id: string;
-  rule_code: string;
-  canonical_id: string | null;
-  citation: string | null;
-  citation_label: string | null;
+  rule_version_id: string | null;
   title: string;
-  jurisdiction_code: string;
-  welfare_category: string;
-  relationship_type: string;
-  note: string | null;
-  notes: string | null;
-  confidence: number | null;
+  citation_label: string | null;
+  welfare_category: string | null;
+  jurisdiction_code: string | null;
   verification_status: string;
+  score: number;
+  relationship_type: string;
+  reason: string;
+  matched_document_excerpt: string | null;
+  matched_rule_excerpt: string | null;
+  applicability_status: string;
+  href: string;
 };
 
 export type DocumentRelatedRulesResponse = {
-  items: RelatedRuleLink[];
+  items: RelatedRuleItem[];
   total: number;
+  document_id: string | null;
+  query: string | null;
 };
 
 export type SearchGroupedResponse = {
@@ -448,8 +449,13 @@ export const apiClient = {
     return request<{ items: RuleListItem[]; total: number }>(`/rules/search?${search.toString()}`, { token });
   },
   getRule: (id: string, token?: string | null) => request<RuleDetailResponse>(`/rules/${id}`, { token }),
-  getDocumentRelatedRules: (documentId: string, token?: string | null) =>
-    request<DocumentRelatedRulesResponse>(`/documents/${documentId}/related-rules`, { token }),
+  getDocumentRelatedRules: (documentId: string, params?: { q?: string; limit?: number }, token?: string | null) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set("q", params.q);
+    if (params?.limit) search.set("limit", String(params.limit));
+    const qs = search.toString();
+    return request<DocumentRelatedRulesResponse>(`/documents/${documentId}/related-rules${qs ? `?${qs}` : ""}`, { token });
+  },
   globalSearch: (q: string, limit?: number, token?: string | null) => {
     const search = new URLSearchParams({ q });
     if (limit) search.set("limit", String(limit));

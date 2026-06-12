@@ -139,3 +139,33 @@ def test_document_related_rules_endpoint_returns_structure() -> None:
     payload = response.json()
     assert "items" in payload
     assert "total" in payload
+    assert "document_id" in payload
+    assert "query" in payload
+
+    # When running offline (db=None), at least one text-overlap placeholder item
+    # should be returned if the sample document text overlaps the query.
+    for item in payload["items"]:
+        assert "rule_id" in item
+        assert "title" in item
+        assert "score" in item
+        assert isinstance(item["score"], float | int)
+        assert "relationship_type" in item
+        assert "reason" in item
+        assert "applicability_status" in item
+        assert "href" in item
+
+
+def test_document_related_rules_with_query_param() -> None:
+    response = client.get(
+        f"/api/documents/{DEV_DOCUMENT_ID}/related-rules?q=veterinary&limit=3",
+        headers={"Authorization": f"Bearer {_get_token()}"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["query"] == "veterinary"
+    assert payload["total"] >= 0
+    for item in payload["items"]:
+        assert 0.0 <= item["score"] <= 1.0
+        assert item["relationship_type"] in (
+            "direct_precedent", "category_match", "text_overlap", "semantic_match", "broad_match",
+        )
