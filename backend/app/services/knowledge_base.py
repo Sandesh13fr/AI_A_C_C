@@ -883,8 +883,8 @@ def _document_context_sql():
             d.raw_text,
             d.retrieval_summary,
             m.jurisdiction_code,
-            COALESCE(m.species, '{}') AS species,
-            COALESCE(m.welfare_categories, '{}') AS welfare_categories
+            COALESCE(m.species, ARRAY[]::text[]) AS species,
+            COALESCE(m.welfare_categories, ARRAY[]::text[]) AS welfare_categories
         FROM documents d
         LEFT JOIN document_metadata m ON m.document_id = d.id
         WHERE d.id = CAST(:document_id AS uuid) AND d.deleted_at IS NULL
@@ -923,15 +923,15 @@ def _category_match_sql():
             COALESCE(r.verification_status, latest.verification_status, 'draft') AS verification_status,
             COALESCE(latest.rule_text, latest.standard_text) AS rule_text,
             COALESCE(ARRAY(
-                SELECT UNNEST(COALESCE(a.species, '\'{}'::text[]))
+                SELECT UNNEST(COALESCE(a.species, ARRAY[]::text[]))
                 INTERSECT
-                SELECT UNNEST(COALESCE(:species, '\'{}'::text[]))
-            ), '{}') AS species_overlap,
+                SELECT UNNEST(COALESCE(:species, ARRAY[]::text[]))
+            ), ARRAY[]::text[]) AS species_overlap,
             COALESCE(ARRAY(
-                SELECT UNNEST(COALESCE(a.facility_types, '\'{}'::text[]))
+                SELECT UNNEST(COALESCE(a.facility_types, ARRAY[]::text[]))
                 INTERSECT
-                SELECT UNNEST(COALESCE(:facility_types, '\'{}'::text[]))
-            ), '{}') AS facility_overlap,
+                SELECT UNNEST(COALESCE(:facility_types, ARRAY[]::text[]))
+            ), ARRAY[]::text[]) AS facility_overlap,
             (a.jurisdiction_code = :jurisdiction_code) AS jurisdiction_match
         FROM regulatory_rules r
         LEFT JOIN rule_applicability a ON a.rule_id = r.id
@@ -946,14 +946,14 @@ def _category_match_sql():
             (
                 a.jurisdiction_code = :jurisdiction_code
                 OR cardinality(ARRAY(
-                    SELECT UNNEST(COALESCE(a.species, '\'{}'::text[]))
+                    SELECT UNNEST(COALESCE(a.species, ARRAY[]::text[]))
                     INTERSECT
-                    SELECT UNNEST(COALESCE(:species, '\'{}'::text[]))
+                    SELECT UNNEST(COALESCE(:species, ARRAY[]::text[]))
                 )) > 0
                 OR cardinality(ARRAY(
-                    SELECT UNNEST(COALESCE(a.facility_types, '\'{}'::text[]))
+                    SELECT UNNEST(COALESCE(a.facility_types, ARRAY[]::text[]))
                     INTERSECT
-                    SELECT UNNEST(COALESCE(:facility_types, '\'{}'::text[]))
+                    SELECT UNNEST(COALESCE(:facility_types, ARRAY[]::text[]))
                 )) > 0
             )
         ORDER BY r.updated_at DESC NULLS LAST
