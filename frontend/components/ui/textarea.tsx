@@ -1,14 +1,15 @@
 import { forwardRef, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => (
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  hasError?: boolean;
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, hasError, ...props }, ref) => (
     <textarea
       ref={ref}
-      className={cn(
-        "min-h-32 w-full rounded-button border border-app-line bg-white px-3 py-2.5 text-body-sm text-ink placeholder:text-ink-soft",
-        className,
-      )}
+      className={cn("form-textarea", hasError && "form-input--error", className)}
       {...props}
     />
   ),

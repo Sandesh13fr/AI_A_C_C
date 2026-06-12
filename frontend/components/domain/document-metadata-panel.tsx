@@ -1,47 +1,42 @@
-import type { DocumentItem } from "@/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { titleCase } from "@/lib/utils";
+import type { DocumentItem } from "@/lib/api-client";
 
-export function DocumentMetadataPanel({ document }: { document: DocumentItem }) {
-  const metadata = document.metadata;
+interface DocumentMetadataPanelProps {
+  document: Pick<DocumentItem, "status" | "ingestion_stage" | "source_label" | "metadata">;
+}
 
+export function DocumentMetadataPanel({ document: doc }: DocumentMetadataPanelProps) {
+  const metadata = doc.metadata;
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Metadata</CardTitle>
+        <CardTitle>Chain of custody</CardTitle>
       </CardHeader>
-      <CardContent>
-        <dl className="space-y-4 text-body-sm">
-          <div>
-            <dt className="app-label">Status</dt>
-            <dd className="mt-1 text-ink">{titleCase(document.status)}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Ingestion stage</dt>
-            <dd className="mt-1 text-ink">{titleCase(document.ingestion_stage)}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Source</dt>
-            <dd className="mt-1 text-ink">{document.source_label ?? "Workspace upload"}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Jurisdiction</dt>
-            <dd className="mt-1 text-ink">{metadata?.jurisdiction_code ?? "Pending"}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Species</dt>
-            <dd className="mt-1 text-ink">{metadata?.species?.join(", ") || "Not tagged"}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Welfare categories</dt>
-            <dd className="mt-1 text-ink">{metadata?.welfare_categories?.map(titleCase).join(", ") || "Not tagged"}</dd>
-          </div>
-          <div>
-            <dt className="app-label">Recorded date</dt>
-            <dd className="mt-1 text-ink">Not supplied in current payload</dd>
-          </div>
-        </dl>
+      <CardContent className="space-y-4">
+        <Row label="Status" value={titleCase(doc.status)} />
+        <Row label="Ingestion stage" value={titleCase(doc.ingestion_stage)} />
+        <Row label="Source" value={doc.source_label ?? "Workspace upload"} />
+        <Row label="Jurisdiction" value={metadata?.jurisdiction_code ?? "Pending"} mono />
+        <Row label="Facility" value={metadata?.facility_name ?? "Not tagged"} />
+        <Row label="Species" value={metadata?.species?.join(", ") || "Not tagged"} />
+        <Row
+          label="Welfare categories"
+          value={metadata?.welfare_categories?.map(titleCase).join(", ") || "Not tagged"}
+        />
+        <Row label="Document date" value="Not extracted" mono />
       </CardContent>
     </Card>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-label uppercase text-ink-500">{label}</p>
+      <p className={mono ? "mt-1 font-mono text-body-sm text-ink-900" : "mt-1 text-body-sm text-ink-900"}>
+        {value}
+      </p>
+    </div>
   );
 }

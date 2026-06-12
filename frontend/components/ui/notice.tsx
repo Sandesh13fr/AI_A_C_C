@@ -1,22 +1,37 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+type Tone = "neutral" | "warning" | "danger" | "success" | "info";
+
 interface NoticeProps {
-  title: string;
+  title?: string;
   children: ReactNode;
-  tone?: "neutral" | "warning";
+  tone?: Tone;
+  className?: string;
 }
 
-export function Notice({ title, children, tone = "neutral" }: NoticeProps) {
+const toneStyles: Record<Tone, string> = {
+  neutral: "border-border bg-ink-50",
+  warning: "border-[#FDE68A] bg-[#FFFBEB]",
+  danger: "border-[#FECACA] bg-[#FEF2F2]",
+  success: "border-[#A7F3D0] bg-[#ECFDF5]",
+  info: "border-[#E2E8F0] bg-[#F8FAFC]",
+};
+
+export function Notice({ title, children, tone = "neutral", className }: NoticeProps) {
   return (
     <div
       className={cn(
-        "rounded-card border px-4 py-3",
-        tone === "warning" ? "border-[#ead3a7] bg-app-gold-soft/70" : "border-app-line bg-app-subtle",
+        "rounded-md border px-4 py-3",
+        toneStyles[tone],
+        className,
       )}
+      role={tone === "danger" ? "alert" : "status"}
     >
-      <p className="font-mono text-micro uppercase text-ink-soft">{title}</p>
-      <div className="mt-2 text-body-sm text-ink">{children}</div>
+      {title ? (
+        <p className="text-label uppercase text-ink-500">{title}</p>
+      ) : null}
+      <div className={cn("text-body-sm text-ink-700", title && "mt-2")}>{children}</div>
     </div>
   );
 }

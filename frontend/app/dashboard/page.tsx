@@ -1,88 +1,217 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { MetricCard } from "@/components/metric-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { dashboardStats, quickActions, recentActivity, systemStatus } from "@/lib/mock-data";
+import { StatCard } from "@/components/domain/stat-card";
+import { QuickActionItem } from "@/components/domain/quick-action-item";
+import { DocumentRow, type DocumentRowData } from "@/components/domain/document-row";
+import { GovernanceNote } from "@/components/domain/governance-note";
+import { SystemStatusList } from "@/components/domain/status-dot";
+import { Icon } from "@/components/icon";
+import { apiClient, type DocumentItem, type ReviewQueueResponse } from "@/lib/api-client";
+import { getSession } from "@/lib/auth";
+import { dashboardStatDefs, quickActions, systemStatusDefs } from "@/lib/ui-config";
+import { titleCase } from "@/lib/utils";
+
+const QUICK_ACTION_ICON_MAP = {
+  Upload: "Upload",
+  Search: "Search",
+  BarChart2: "BarChart2",
+  CheckSquare: "CheckSquare",
+  Scale: "Scale",
+  BookOpen: "BookOpen",
+} as const;
+
+type QuickActionIconName = keyof typeof QUICK_ACTION_ICON_MAP;
 
 export default function DashboardPage() {
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [documentsTotal, setDocumentsTotal] = useState<number | null>(null);
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const session = getSession();
+    Promise.all([
+      apiClient
+        .listDocuments({ page_size: 6 }, session?.accessToken)
+        .then((response) => {
+          setDocuments(response.items);
+          setDocumentsTotal(response.total);
+        })
+        .catch(() => {
+          setDocuments([]);
+          setDocumentsTotal(0);
+        }),
+      apiClient
+        .reviewQueue(session?.accessToken)
+        .then(setReviewQueue)
+        .catch(() => setReviewQueue({ items: [], total: 0 })),
+    ]).finally(() => setLoading(false));
+  }, []);
+
+  const statValues: Record<string, string> = {
+    indexed_documents: documentsTotal !== null ? formatNumber(documentsTotal) : "—",
+    pending_review: reviewQueue ? formatNumber(reviewQueue.total) : "—",
+    active_analyses: "—",
+    knowledge_coverage: "—",
+  };
+
   return (
     <AppShell
-      title="Dashboard"
-      subtitle="Operational overview for ingestion, analysis, review, and governance-safe export readiness."
+      pageEyebrow="Decision-support workspace"
+      pageTitle="Dashboard"
+      pageDescription="Operational overview for ingestion, analysis, review, and governance-safe export readiness."
       actions={
-        <div className="flex gap-3">
+        <>
           <Link href="/uploads">
-            <Button variant="secondary">Upload document</Button>
+            <Button variant="secondary" leadingIcon={<Icon name="Upload" size={14} />}>
+              Upload document
+            </Button>
           </Link>
-          <Link href="/analysis">
-            <Button>Start analysis</Button>
+          <Link href="/analysis/new">
+            <Button variant="primary" leadingIcon={<Icon name="BarChart2" size={14} />}>
+              Start analysis
+            </Button>
           </Link>
-        </div>
+        </>
       }
     >
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {dashboardStats.map((stat) => (
-            <MetricCard key={stat.label} label={stat.label} value={stat.value} detail={stat.detail} />
+        <section
+          aria-label="Key metrics"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          {dashboardStatDefs.map((stat) => (
+            <StatCard
+              key={stat.key}
+              label={stat.label}
+              value={statValues[stat.key]}
+              description={stat.description}
+              live={stat.live}
+              emphasis={stat.emphasis}
+            />
           ))}
-        </div>
+        </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent documents and runs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentActivity.map((item) => (
-                <div key={item.title} className="rounded-card border border-app-line bg-app-bg px-4 py-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-body-sm font-medium text-ink">{item.title}</p>
-                      <p className="mt-1 text-body-sm text-ink-soft">{item.meta}</p>
-                    </div>
-                    <span className="font-mono text-micro uppercase text-ink-soft">{item.status}</span>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
+        <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {quickActions.map((action) => (
-                  <Link
-                    key={action.href}
-                    href={action.href}
-                    className="block rounded-button border border-app-line px-4 py-3 hover:border-app-teal hover:bg-app-mint/50"
-                  >
-                    <p className="text-body-sm font-medium text-ink">{action.label}</p>
-                    <p className="mt-1 text-body-sm text-ink-soft">{action.note}</p>
-                  </Link>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>System status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {systemStatus.map((row) => (
-                  <div key={row.label} className="flex items-start justify-between gap-4 border-b border-app-line pb-3 last:border-b-0 last:pb-0">
-                    <p className="text-body-sm text-ink-soft">{row.label}</p>
-                    <p className="text-body-sm font-medium text-ink">{row.value}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <RecentDocumentsCard loading={loading} documents={documents} />
           </div>
-        </div>
+          <div className="space-y-6">
+            <QuickActionsCard />
+            <SystemStatusCard />
+          </div>
+        </section>
+
+        <GovernanceNote>
+          Findings remain candidate concerns or possible gaps until a human reviewer confirms next steps.
+        </GovernanceNote>
       </div>
     </AppShell>
   );
+}
+
+function RecentDocumentsCard({ loading, documents }: { loading: boolean; documents: DocumentItem[] }) {
+  return (
+    <div className="surface">
+      <header className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div>
+          <h2 className="font-display text-display-lg text-ink-900">Recent documents</h2>
+          <p className="mt-1 text-body-sm text-ink-500">Latest ingest, sync, and review activity across the corpus.</p>
+        </div>
+        <Link
+          href="/documents"
+          className="text-label uppercase text-brand hover:underline"
+        >
+          View all
+        </Link>
+      </header>
+      {loading ? (
+        <div className="divide-y divide-border-subtle">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="px-5 py-4">
+              <div className="h-4 w-48 rounded bg-ink-100" />
+              <div className="mt-2 h-3 w-32 rounded bg-ink-100" />
+            </div>
+          ))}
+        </div>
+      ) : documents.length > 0 ? (
+        <div className="divide-y divide-border-subtle">
+          {documents.map((doc) => (
+            <DocumentRow key={doc.id} document={toRowData(doc)} href={`/documents/${doc.id}`} />
+          ))}
+        </div>
+      ) : (
+        <div className="px-5 py-10 text-center">
+          <p className="text-body-sm text-ink-500">No documents indexed yet. Upload your first document to begin.</p>
+          <div className="mt-3">
+            <Link href="/uploads">
+              <Button variant="primary" leadingIcon={<Icon name="Upload" size={14} />}>
+                Upload document
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickActionsCard() {
+  return (
+    <div className="surface">
+      <header className="border-b border-border px-5 py-4">
+        <h2 className="font-display text-display-lg text-ink-900">Quick actions</h2>
+        <p className="mt-1 text-body-sm text-ink-500">Jump straight to the most common tasks.</p>
+      </header>
+      <div className="space-y-2 p-3">
+        {quickActions.map((action) => {
+          const icon = QUICK_ACTION_ICON_MAP[action.icon as QuickActionIconName] ?? "BarChart2";
+          return (
+            <QuickActionItem
+              key={action.label}
+              label={action.label}
+              description={action.description}
+              href={action.href}
+              icon={icon}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SystemStatusCard() {
+  return (
+    <div className="surface">
+      <header className="border-b border-border px-5 py-4">
+        <h2 className="font-display text-display-lg text-ink-900">System status</h2>
+        <p className="mt-1 text-body-sm text-ink-500">Live operational signals.</p>
+      </header>
+      <div className="px-5 py-4">
+        <SystemStatusList items={systemStatusDefs.map((row) => ({ ...row, value: row.description }))} />
+      </div>
+    </div>
+  );
+}
+
+function toRowData(doc: DocumentItem): DocumentRowData {
+  return {
+    id: doc.id,
+    title: doc.title ?? doc.filename,
+    filename: doc.filename,
+    sourceType: titleCase((doc.doc_type ?? "").replace(/_/g, " ")),
+    jurisdiction: doc.metadata?.jurisdiction_code ?? "Unknown",
+    species: doc.metadata?.species?.join(", ") ?? "Multi-species",
+    status: doc.status ?? "draft",
+    updatedAt: doc.updated_at ?? doc.created_at ?? new Date().toISOString(),
+  };
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("en-US").format(value);
 }

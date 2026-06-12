@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("rounded-button bg-app-subtle", className)} aria-hidden="true" />;
+interface SkeletonProps {
+  className?: string;
+}
+
+export function Skeleton({ className }: SkeletonProps) {
+  return <div className={cn("skeleton", className)} aria-hidden="true" />;
 }

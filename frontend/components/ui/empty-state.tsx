@@ -3,18 +3,30 @@ import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
+  icon?: ReactNode;
   className?: string;
 }
 
-export function EmptyState({ title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ title, description, action, icon, className }: EmptyStateProps) {
   return (
-    <div className={cn("rounded-card border border-dashed border-app-line-strong bg-app-panel px-5 py-8 text-center", className)}>
-      <p className="font-mono text-micro uppercase text-ink-soft">No items loaded</p>
-      <h3 className="mt-3 text-h3 text-ink">{title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-body-sm text-ink-soft">{description}</p>
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+    <div
+      className={cn(
+        "mx-auto flex max-w-[320px] flex-col items-center justify-center px-4 py-12 text-center",
+        className,
+      )}
+    >
+      {icon ? (
+        <div className="mb-3 text-ink-300" aria-hidden="true">
+          {icon}
+        </div>
+      ) : null}
+      <h3 className="font-body text-heading-md font-semibold text-ink-700">{title}</h3>
+      {description ? (
+        <p className="mt-2 text-body-sm text-ink-500">{description}</p>
+      ) : null}
+      {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
 }

@@ -27,10 +27,24 @@ export type DocumentMetadata = {
   issuer: string | null;
   jurisdiction_code: string | null;
   facility_name: string | null;
+  facility_id?: string | null;
   species: string[];
+  inspection_date?: string | null;
+  document_date?: string | null;
+  inspector_name?: string | null;
+  reference_number?: string | null;
   welfare_categories: string[];
   facility_types: string[];
   industries: string[];
+  extra?: Record<string, unknown>;
+};
+
+export type DocumentChunk = {
+  id: string;
+  chunk_index: number;
+  raw_text?: string | null;
+  retrieval_summary?: string | null;
+  text?: string | null;
 };
 
 export type DocumentItem = {
@@ -39,6 +53,9 @@ export type DocumentItem = {
   title: string | null;
   filename: string;
   original_name: string | null;
+  file_path?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
   doc_type: string;
   source_label: string | null;
   status: string;
@@ -46,9 +63,11 @@ export type DocumentItem = {
   retrieval_summary: string | null;
   raw_text?: string | null;
   metadata: DocumentMetadata | null;
-  chunks?: Record<string, unknown>[];
+  chunks?: DocumentChunk[];
   topics?: string[];
   related_rules?: RelatedRuleLink[];
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type DocumentListResponse = {
@@ -104,6 +123,54 @@ export type AnalysisRunResponse = {
   status: string;
   summary: Record<string, unknown>;
   disclaimer: string;
+  findings?: FindingItem[];
+};
+
+export type FindingItem = {
+  id: string;
+  analysis_run_id?: string;
+  finding_type: string;
+  welfare_category?: string | null;
+  severity: "low" | "medium" | "high" | "critical" | "info";
+  calibrated_confidence?: number;
+  trigger_kind?: "passage" | "absence" | "metadata" | "pattern";
+  trigger_text?: string | null;
+  page_start?: number | null;
+  page_end?: number | null;
+  explanation?: string;
+  counterfactual?: string | null;
+  status?: string;
+  document_id?: string | null;
+  flag_id?: string | null;
+  citations?: Array<Record<string, unknown>>;
+};
+
+export type FindingsListResponse = {
+  items: FindingItem[];
+  total: number;
+  allowed_finding_types?: string[];
+};
+
+export type ReviewQueueItem = {
+  id: string;
+  flag_id?: string;
+  title?: string;
+  finding_id?: string;
+  document_id?: string;
+  document_title?: string;
+  analysis_run_id?: string;
+  severity?: FindingItem["severity"];
+  submitted_at?: string;
+  assigned_to?: string;
+  status?: "pending" | "in_review" | "complete" | "commented";
+  reason?: string;
+};
+
+export type ReviewQueueResponse = {
+  items: ReviewQueueItem[];
+  total: number;
+  status?: string;
+  message?: string;
 };
 
 export type RuleListItem = {
@@ -124,6 +191,8 @@ export type RuleListItem = {
   canonical_id: string | null;
   citation_label: string | null;
   source_type: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type RuleListResponse = {
@@ -247,6 +316,65 @@ export type ChatAnswerResponse = {
   guardrails: string[];
 };
 
+export type IngestBatchResponse = {
+  id: string;
+  status: string;
+  batch_type: string;
+  total_files: number;
+  next_step: string;
+};
+
+export type RulebookListItem = {
+  id: string;
+  name: string;
+  rulebook_type?: string | null;
+  status?: string | null;
+  version?: string | null;
+  jurisdiction?: string | null;
+  rule_count?: number;
+  description?: string | null;
+  updated_at?: string | null;
+};
+
+export type RulebookListResponse = {
+  items: RulebookListItem[];
+  total: number;
+};
+
+export type ExportItem = {
+  id: string;
+  analysis_run_id?: string | null;
+  document_id?: string | null;
+  document_title?: string | null;
+  title?: string | null;
+  status: string;
+  jurisdiction?: string | null;
+  governance_state?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  export_type?: string;
+};
+
+export type ExportListResponse = {
+  items: ExportItem[];
+  total: number;
+  disclaimer_text?: string;
+};
+
+export type WatchlistItem = {
+  id: string;
+  name: string;
+  item_count?: number;
+  description?: string | null;
+  last_updated?: string | null;
+};
+
+export type WatchlistListResponse = {
+  items: WatchlistItem[];
+  total: number;
+  status?: string;
+};
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
@@ -278,16 +406,32 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 export const apiClient = {
   login: (email: string, password: string) =>
     request<LoginResponse>("/auth/login", { method: "POST", body: { email, password } }),
+  register: (body: { email: string; password: string; full_name?: string; organization_name?: string }) =>
+    request<LoginResponse>("/auth/register", { method: "POST", body }),
   me: (token?: string | null) => request<LoginResponse["user"]>("/users/me", { token }),
-  listDocuments: (token?: string | null) => request<DocumentListResponse>("/documents", { token }),
+  listDocuments: (params?: { q?: string; status?: string; doc_type?: string; page?: number; page_size?: number; organization_id?: string }, token?: string | null) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set("q", params.q);
+    if (params?.status) search.set("status", params.status);
+    if (params?.doc_type) search.set("doc_type", params.doc_type);
+    if (params?.page) search.set("page", String(params.page));
+    if (params?.page_size) search.set("page_size", String(params.page_size));
+    if (params?.organization_id) search.set("organization_id", params.organization_id);
+    const qs = search.toString();
+    return request<DocumentListResponse>(`/documents${qs ? `?${qs}` : ""}`, { token });
+  },
   getDocument: (id: string, token?: string | null) => request<DocumentItem>(`/documents/${id}`, { token }),
   search: (body: SearchRequest, token?: string | null) => request<SearchResponse>("/search", { method: "POST", body, token }),
   createUploadBatch: (body: Record<string, unknown>, token?: string | null) =>
-    request<Record<string, unknown>>("/uploads", { method: "POST", body, token }),
+    request<IngestBatchResponse>("/uploads", { method: "POST", body, token }),
   createAnalysisRun: (body: Record<string, unknown>, token?: string | null) =>
     request<AnalysisRunResponse>("/analysis-runs", { method: "POST", body, token }),
-  getAnalysisRun: (id: string, token?: string | null) => request<AnalysisRunResponse>(`/analysis-runs/${id}`, { token }),
-  listRules: (params?: { q?: string; jurisdiction?: string; category?: string; verification_status?: string; page?: number; page_size?: number }, token?: string | null) => {
+  getAnalysisRun: (id: string, token?: string | null) =>
+    request<AnalysisRunResponse>(`/analysis-runs/${id}`, { token }),
+  listRules: (
+    params?: { q?: string; jurisdiction?: string; category?: string; verification_status?: string; page?: number; page_size?: number },
+    token?: string | null,
+  ) => {
     const search = new URLSearchParams();
     if (params?.q) search.set("q", params.q);
     if (params?.jurisdiction) search.set("jurisdiction", params.jurisdiction);
@@ -298,6 +442,11 @@ export const apiClient = {
     const qs = search.toString();
     return request<RuleListResponse>(`/rules${qs ? `?${qs}` : ""}`, { token });
   },
+  searchRules: (q: string, limit?: number, token?: string | null) => {
+    const search = new URLSearchParams({ q });
+    if (limit) search.set("limit", String(limit));
+    return request<{ items: RuleListItem[]; total: number }>(`/rules/search?${search.toString()}`, { token });
+  },
   getRule: (id: string, token?: string | null) => request<RuleDetailResponse>(`/rules/${id}`, { token }),
   getDocumentRelatedRules: (documentId: string, token?: string | null) =>
     request<DocumentRelatedRulesResponse>(`/documents/${documentId}/related-rules`, { token }),
@@ -306,9 +455,11 @@ export const apiClient = {
     if (limit) search.set("limit", String(limit));
     return request<SearchGroupedResponse>(`/search?${search.toString()}`, { token });
   },
-  listRulebooks: (token?: string | null) => request<Record<string, unknown>>("/rulebooks", { token }),
-  reviewQueue: (token?: string | null) => request<Record<string, unknown>>("/review/queue", { token }),
-  listExports: (token?: string | null) => request<Record<string, unknown>>("/exports", { token }),
+  listRulebooks: (token?: string | null) => request<RulebookListResponse>("/rulebooks", { token }),
+  reviewQueue: (token?: string | null) => request<ReviewQueueResponse>("/review/queue", { token }),
+  listFindings: (token?: string | null) => request<FindingsListResponse>("/findings", { token }),
+  listExports: (token?: string | null) => request<ExportListResponse>("/exports", { token }),
+  listWatchlists: (token?: string | null) => request<WatchlistListResponse>("/watchlists", { token }),
   askDocument: (documentId: string, content: string, token?: string | null) =>
     request<ChatAnswerResponse>(`/chat/document/${documentId}`, { method: "POST", body: { content }, token }),
 };

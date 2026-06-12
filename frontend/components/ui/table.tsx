@@ -2,30 +2,44 @@ import type { HTMLAttributes, TableHTMLAttributes, TdHTMLAttributes, ThHTMLAttri
 import { cn } from "@/lib/utils";
 
 export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
-  return <table className={cn("min-w-full border-separate border-spacing-0", className)} {...props} />;
+  return <table className={cn("data-table", className)} {...props} />;
 }
 
 export function TableHead({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("bg-app-subtle", className)} {...props} />;
+  return <thead className={cn("", className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("bg-white", className)} {...props} />;
+  return <tbody className={cn("", className)} {...props} />;
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn("hover:bg-app-bg/80", className)} {...props} />;
+  return <tr className={cn("", className)} {...props} />;
 }
 
-export function TableHeaderCell({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
+export function TableHeaderCell({ className, align = "left", ...props }: ThHTMLAttributes<HTMLTableCellElement> & { align?: "left" | "right" | "center" }) {
   return (
     <th
-      className={cn("border-b border-app-line px-4 py-3 text-left font-mono text-micro uppercase text-ink-soft", className)}
+      scope="col"
+      className={cn(
+        align === "right" && "text-right",
+        align === "center" && "text-center",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("border-b border-app-line px-4 py-3 align-top text-body-sm text-ink", className)} {...props} />;
+export function TableCell({ className, align = "left", ...props }: TdHTMLAttributes<HTMLTableCellElement> & { align?: "left" | "right" | "center" }) {
+  return (
+    <td
+      className={cn(
+        align === "right" && "text-right",
+        align === "center" && "text-center",
+        className,
+      )}
+      {...props}
+    />
+  );
 }

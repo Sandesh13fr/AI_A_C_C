@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function ReviewQueueAliasPage() {
+export default function ReviewQueueAliasRedirect() {
   redirect("/review");
 }

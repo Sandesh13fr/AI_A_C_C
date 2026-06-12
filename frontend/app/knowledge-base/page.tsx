@@ -1,156 +1,176 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/domain/search-input";
+import { Tabs } from "@/components/domain/tabs";
+import { Icon } from "@/components/icon";
+import { StatusBadge } from "@/components/domain/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
-import { apiClient, type RuleListItem } from "@/lib/api-client";
+import { EmptyState } from "@/components/ui/empty-state";
+import { apiClient, type RuleListItem, type RuleListResponse } from "@/lib/api-client";
 import { getSession } from "@/lib/auth";
-import { titleCase } from "@/lib/utils";
-
-function VerificationBadge({ status }: { status: string }) {
-  const variant = status === "verified" ? "success" : status === "needs_review" ? "warning" : "outline";
-  return <Badge variant={variant}>{status}</Badge>;
-}
+import { verificationStatusLabels } from "@/lib/ui-config";
+import { formatDateLabel, titleCase } from "@/lib/utils";
 
 export default function KnowledgeBasePage() {
+  const [tab, setTab] = useState("rules");
   const [rules, setRules] = useState<RuleListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [jurisdictionFilter, setJurisdictionFilter] = useState("");
-  const [verificationFilter, setVerificationFilter] = useState("");
-
-  const fetchRules = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const session = getSession();
-      const res = await apiClient.listRules(
-        {
-          q: search || undefined,
-          category: categoryFilter || undefined,
-          jurisdiction: jurisdictionFilter || undefined,
-          verification_status: verificationFilter || undefined,
-        },
-        session?.accessToken,
-      );
-      setRules(res.items);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load rules");
-    } finally {
-      setLoading(false);
-    }
-  }, [search, categoryFilter, jurisdictionFilter, verificationFilter]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    fetchRules();
-  }, [fetchRules]);
+    const session = getSession();
+    apiClient
+      .listRules(
+        {
+          q: query || undefined,
+          page_size: 50,
+        },
+        session?.accessToken,
+      )
+      .then((response: RuleListResponse) => setRules(response.items))
+      .catch(() => setRules([]))
+      .finally(() => setLoading(false));
+  }, [query]);
 
   return (
     <AppShell
-      title="Knowledge Base"
-      subtitle="Regulatory rules, standards, guidance, and precedent references that support reviewer decisions."
+      pageEyebrow="Rule and precedent corpus"
+      pageTitle="Knowledge Base"
+      pageDescription="Imported rules, guidance, and precedent material that ground reviewer decisions. Verification status controls how findings cite them."
+      actions={
+        <>
+          <Link href="/knowledge-base/import">
+            <Button variant="secondary" leadingIcon={<Icon name="Upload" size={14} />}>
+              Import rules
+            </Button>
+          </Link>
+          <Link href="/knowledge-base/review">
+            <Button variant="primary" leadingIcon={<Icon name="CheckSquare" size={14} />}>
+              Review imports
+            </Button>
+          </Link>
+        </>
+      }
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Rules and standards</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <div className="min-w-[200px] flex-1">
-              <Input
-                placeholder="Search rules..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="w-[200px]">
-              <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="">All categories</option>
-                <option value="veterinary_care">Veterinary Care</option>
-                <option value="housing_environment">Housing & Environment</option>
-                <option value="overcrowding">Overcrowding</option>
-                <option value="feeding_water">Feeding & Water</option>
-                <option value="euthanasia_procedures">Euthanasia</option>
-                <option value="transport_conditions">Transport</option>
-              </Select>
-            </div>
-            <div className="w-[180px]">
-              <Select value={jurisdictionFilter} onChange={(e) => setJurisdictionFilter(e.target.value)}>
-                <option value="">All jurisdictions</option>
-                <option value="US-FED">US Federal</option>
-              </Select>
-            </div>
-            <div className="w-[200px]">
-              <Select value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)}>
-                <option value="">All verification states</option>
-                <option value="needs_review">Needs Review</option>
-                <option value="verified">Verified</option>
-                <option value="draft">Draft</option>
-              </Select>
-            </div>
-          </div>
+      <div className="mt-6">
+        <Tabs
+          paramName="tab"
+          items={[
+            { label: "Rules", value: "rules", count: rules.length },
+            { label: "Precedent", value: "precedent" },
+            { label: "Guidance", value: "guidance" },
+            { label: "Imports", value: "imports", href: "/knowledge-base/import" },
+          ]}
+        />
+      </div>
 
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : error ? (
-            <EmptyState title="Unable to load rules" description={error} />
-          ) : rules.length === 0 ? (
-            <EmptyState
-              title="No rules found"
-              description="Try adjusting your search or filters."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHead>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-4">
+          <SearchInput
+            placeholder="Search rules by citation, title, or summary…"
+            value={query}
+            onChange={setQuery}
+          />
+          <div className="surface">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Title / Citation</th>
+                  <th scope="col">Jurisdiction</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-right">
+                    Date added
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <tr key={index}>
+                      <td colSpan={5}>
+                        <Skeleton className="h-10 w-full" />
+                      </td>
+                    </tr>
+                  ))
+                ) : rules.length === 0 ? (
                   <tr>
-                    <TableHeaderCell>Title / Citation</TableHeaderCell>
-                    <TableHeaderCell>Jurisdiction</TableHeaderCell>
-                    <TableHeaderCell>Category</TableHeaderCell>
-                    <TableHeaderCell>Status</TableHeaderCell>
-                    <TableHeaderCell>Summary</TableHeaderCell>
+                    <td colSpan={5}>
+                      <EmptyState
+                        title="No rules found"
+                        description="Try adjusting your search or import new rules."
+                      />
+                    </td>
                   </tr>
-                </TableHead>
-                <TableBody>
-                  {rules.map((rule) => (
-                    <TableRow key={rule.id}>
-                      <TableCell>
-                        <Link href={`/knowledge-base/${rule.id}`} className="text-app-teal-deep hover:underline">
-                          {rule.title}
+                ) : (
+                  rules.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <Link
+                          href={`/knowledge-base/${row.id}`}
+                          className="text-body-md font-semibold text-ink-900 hover:text-brand"
+                        >
+                          {row.title}
                         </Link>
-                        <p className="mt-0.5 text-micro text-ink-soft">{rule.citation ?? rule.citation_label ?? "Citation unavailable"}</p>
-                      </TableCell>
-                      <TableCell>{rule.jurisdiction_code}</TableCell>
-                      <TableCell>{rule.welfare_category ? titleCase(rule.welfare_category.replace(/_/g, " ")) : "Unknown"}</TableCell>
-                      <TableCell>
-                        <VerificationBadge status={rule.verification_status} />
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-micro text-ink-soft">
-                          {rule.summary ?? rule.latest_version_preview ?? "No summary available."}
+                        <p className="mt-0.5 font-mono text-mono-sm text-ink-500">
+                          {row.citation ?? row.citation_label ?? "—"} · {row.summary ?? "No summary available."}
                         </p>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      </td>
+                      <td>
+                        <span className="chip">{row.jurisdiction_code}</span>
+                      </td>
+                      <td>
+                        {row.welfare_category
+                          ? titleCase(row.welfare_category.replace(/_/g, " "))
+                          : row.source_type
+                            ? titleCase(row.source_type.replace(/_/g, " "))
+                            : "—"}
+                      </td>
+                      <td>
+                        <StatusBadge status={row.verification_status} />
+                        <span className="sr-only">
+                          {verificationStatusLabels[row.verification_status] ?? titleCase(row.verification_status)}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <span className="font-mono text-mono-sm text-ink-700">
+                          {formatDateLabel(null)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="space-y-6">
+          <div className="surface p-4">
+            <p className="text-label uppercase text-ink-500">Verification states</p>
+            <ul className="mt-3 space-y-2 text-body-sm text-ink-700">
+              <li className="flex items-center gap-2">
+                <StatusBadge status="verified" /> Ready for citation in findings.
+              </li>
+              <li className="flex items-center gap-2">
+                <StatusBadge status="needs_review" /> Cited with a "needs verification" note.
+              </li>
+              <li className="flex items-center gap-2">
+                <StatusBadge status="draft" /> Not cited in any finding yet.
+              </li>
+            </ul>
+          </div>
+          <div className="surface p-4">
+            <p className="text-label uppercase text-ink-500">Recent activity</p>
+            <p className="mt-3 text-body-sm text-ink-500">
+              Activity is not available until a rule has been imported.
+            </p>
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 }

@@ -1,11 +1,10 @@
-import { AnalysisDetailClient } from "./analysis-detail-client";
+import { AnalysisRunClient } from "./analysis-detail-client";
 
-export default async function AnalysisDetailPage({
+export default async function AnalysisRunPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
-  return <AnalysisDetailClient id={id} />;
+  return <AnalysisRunClient id={id} />;
 }

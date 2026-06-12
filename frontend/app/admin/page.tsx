@@ -1,21 +1,24 @@
-import { AppShell } from "@/components/app-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { adminRows } from "@/lib/mock-data";
+"use client";
 
-export default function AdminPage() {
+import { AppShell } from "@/components/app-shell";
+import { StatCard } from "@/components/domain/stat-card";
+import { adminStatDefs } from "@/lib/ui-config";
+
+export default function AdminIndexPage() {
   return (
-    <AppShell title="Admin" subtitle="Organizations, users, data sources, audit events, and other governance surfaces.">
-      <div className="grid gap-4 lg:grid-cols-3">
-        {adminRows.map((row) => (
-          <Card key={row.label}>
-            <CardHeader>
-              <CardTitle>{row.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-body-sm font-medium text-ink">{row.value}</p>
-              <p className="text-body-sm text-ink-soft">{row.detail}</p>
-            </CardContent>
-          </Card>
+    <AppShell
+      pageEyebrow="Organisation administration"
+      pageTitle="Admin overview"
+      pageDescription="Organisation administration, governance, and platform-wide configuration. Restricted to Admin and Org Admin roles."
+    >
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {adminStatDefs.map((row) => (
+          <StatCard
+            key={row.label}
+            label={row.label}
+            value="—"
+            description={row.description}
+          />
         ))}
       </div>
     </AppShell>

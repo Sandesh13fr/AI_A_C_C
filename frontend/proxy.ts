@@ -18,7 +18,10 @@ const protectedPrefixes = [
   "/chat",
   "/admin",
   "/settings",
+  "/watchlists",
   "/design",
+  "/review-queue",
+  "/rules",
 ];
 
 export function proxy(request: NextRequest) {
@@ -33,6 +36,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/review", request.url));
   }
 
+  if (pathname === "/search" || pathname === "/search/") {
+    return NextResponse.redirect(new URL("/documents?tab=search", request.url));
+  }
+
+  if (pathname === "/search/saved" || pathname === "/search/saved/") {
+    return NextResponse.redirect(new URL("/documents?tab=saved", request.url));
+  }
+
+  if (pathname === "/design") {
+    return NextResponse.redirect(new URL("/settings/appearance", request.url));
+  }
+
   if (pathname === "/") {
     return NextResponse.redirect(new URL(hasSession ? "/dashboard" : "/login", request.url));
   }
@@ -41,7 +56,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  const isProtected = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
   if (!isProtected || hasSession) {
     return NextResponse.next();
   }

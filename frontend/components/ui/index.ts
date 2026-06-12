@@ -1,11 +1,18 @@
 export { Button } from "./button";
-export { Badge } from "./badge";
-export { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
-export { RiskBadge } from "./risk-badge";
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "./card";
 export { Input } from "./input";
 export { Textarea } from "./textarea";
 export { Select } from "./select";
-export { EmptyState } from "./empty-state";
+export { Checkbox } from "./checkbox";
 export { Skeleton } from "./skeleton";
-export { StatusPill } from "./status-pill";
+export { EmptyState } from "./empty-state";
+export { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from "./table";
 export { Notice } from "./notice";
+export { ConfirmModal } from "./confirm-modal";

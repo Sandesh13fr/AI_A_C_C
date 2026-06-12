@@ -1,43 +1,58 @@
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "destructive";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;
+  leadingIcon?: ReactNode;
+  trailingIcon?: ReactNode;
 }
 
 const variantStyles: Record<Variant, string> = {
-  primary: "bg-app-teal text-white hover:bg-app-teal-deep",
-  secondary: "border border-app-line-strong bg-white text-ink hover:border-app-teal hover:text-app-teal",
-  ghost: "bg-app-subtle text-ink hover:bg-app-mint",
-  destructive: "bg-app-coral text-white hover:opacity-95",
+  primary: "btn btn--primary",
+  secondary: "btn btn--secondary",
+  ghost: "btn btn--ghost",
+  danger: "btn btn--danger",
 };
 
 const sizeStyles: Record<Size, string> = {
-  sm: "px-3 py-2 text-body-sm",
-  md: "px-4 py-2.5 text-body-sm",
-  lg: "px-5 py-3 text-body-sm",
+  sm: "btn--sm",
+  md: "",
+  lg: "btn--lg",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, children, variant = "primary", size = "md", disabled, loading, ...props }, ref) => (
+  (
+    { className, children, variant = "primary", size = "md", disabled, loading, leadingIcon, trailingIcon, type = "button", ...props },
+    ref,
+  ) => (
     <button
       ref={ref}
+      type={type}
       disabled={disabled ?? loading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-button font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        variantStyles[variant],
-        sizeStyles[size],
-        className,
-      )}
+      className={cn(variantStyles[variant], sizeStyles[size], className)}
       {...props}
     >
-      {loading ? <span className="size-3 rounded-full border border-current border-r-transparent" aria-hidden="true" /> : null}
+      {loading ? (
+        <span
+          className="inline-block size-3 animate-spin rounded-full border-2 border-current border-r-transparent"
+          aria-hidden="true"
+        />
+      ) : leadingIcon ? (
+        <span className="inline-flex shrink-0 items-center" aria-hidden="true">
+          {leadingIcon}
+        </span>
+      ) : null}
       {children}
+      {trailingIcon ? (
+        <span className="inline-flex shrink-0 items-center" aria-hidden="true">
+          {trailingIcon}
+        </span>
+      ) : null}
     </button>
   ),
 );

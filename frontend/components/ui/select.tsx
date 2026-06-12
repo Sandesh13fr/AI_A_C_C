@@ -1,11 +1,16 @@
-import { forwardRef, type SelectHTMLAttributes } from "react";
+import { forwardRef, type SelectHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
-  ({ className, children, ...props }, ref) => (
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  children: ReactNode;
+  hasError?: boolean;
+}
+
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  ({ className, children, hasError, ...props }, ref) => (
     <select
       ref={ref}
-      className={cn("w-full rounded-button border border-app-line bg-white px-3 py-2.5 text-body-sm text-ink", className)}
+      className={cn("form-select", hasError && "form-input--error", className)}
       {...props}
     >
       {children}

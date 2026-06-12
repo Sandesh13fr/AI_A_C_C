@@ -7,7 +7,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Card({ className, children, ...props }: CardProps) {
   return (
-    <section className={cn("app-panel", className)} {...props}>
+    <section className={cn("surface", className)} {...props}>
       {children}
     </section>
   );
@@ -15,15 +15,10 @@ export function Card({ className, children, ...props }: CardProps) {
 
 export function CardHeader({ className, children, ...props }: CardProps) {
   return (
-    <div className={cn("border-b border-app-line px-5 py-4", className)} {...props}>
-      {children}
-    </div>
-  );
-}
-
-export function CardContent({ className, children, ...props }: CardProps) {
-  return (
-    <div className={cn("px-5 py-4", className)} {...props}>
+    <div
+      className={cn("flex items-center justify-between border-b border-border px-5 py-4", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -35,9 +30,12 @@ export function CardTitle({
   ...props
 }: HTMLAttributes<HTMLHeadingElement> & { children: ReactNode }) {
   return (
-    <h2 className={cn("font-sans text-h3 text-ink", className)} {...props}>
+    <h3
+      className={cn("font-body text-heading-md font-semibold text-ink-900", className)}
+      {...props}
+    >
       {children}
-    </h2>
+    </h3>
   );
 }
 
@@ -47,8 +45,27 @@ export function CardDescription({
   ...props
 }: HTMLAttributes<HTMLParagraphElement> & { children: ReactNode }) {
   return (
-    <p className={cn("mt-1 text-body-sm text-ink-soft", className)} {...props}>
+    <p className={cn("text-body-sm text-ink-500", className)} {...props}>
       {children}
     </p>
+  );
+}
+
+export function CardContent({ className, children, ...props }: CardProps) {
+  return (
+    <div className={cn("px-5 py-4", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardFooter({ className, children, ...props }: CardProps) {
+  return (
+    <div
+      className={cn("flex items-center justify-end gap-3 border-t border-border px-5 py-3", className)}
+      {...props}
+    >
+      {children}
+    </div>
   );
 }
