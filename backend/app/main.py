@@ -58,15 +58,20 @@ app = FastAPI(
     redoc_url=None if settings.is_production else "/redoc",
 )
 
-app.add_middleware(RequestIDMiddleware)
+cors_origins = settings.cors_origins_list
+cors_origin_regex = r"^https?://([a-z0-9-]+\.)*up\.railway\.app(:\d+)?$" if settings.is_production else None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Request-ID"],
 )
+
+app.add_middleware(RequestIDMiddleware)
 
 
 def _error(status_code: int, code: str, message: str) -> JSONResponse:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 from pydantic import model_validator
@@ -92,7 +93,30 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        origins = {origin.strip() for origin in self.cors_origins.split(",") if origin.strip()}
+        for extra in self._derived_cors_origins():
+            if extra:
+                origins.add(extra)
+        return sorted(origins)
+
+    def _derived_cors_origins(self) -> list[str]:
+        derived: list[str] = []
+        railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+        if railway_public_domain:
+            if not railway_public_domain.startswith(("http://", "https://")):
+                derived.append(f"https://{railway_public_domain}")
+            else:
+                derived.append(railway_public_domain)
+        railway_static_url = os.environ.get("RAILWAY_STATIC_URL", "").strip()
+        if railway_static_url:
+            if not railway_static_url.startswith(("http://", "https://")):
+                derived.append(f"https://{railway_static_url}")
+            else:
+                derived.append(railway_static_url)
+        frontend_base_url = os.environ.get("FRONTEND_BASE_URL", "").strip().rstrip("/")
+        if frontend_base_url:
+            derived.append(frontend_base_url)
+        return derived
 
     @model_validator(mode="after")
     def normalize_database_urls(self) -> Settings:
@@ -107,8 +131,10 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.secret_key in {"", "dev-change-me", "changeme", "secret"}:
             problems.append("SECRET_KEY must be set to a strong random value")
-        if not self.cors_origins_list or "*" in self.cors_origins_list:
-            problems.append("CORS_ORIGINS must contain explicit frontend origins")
+        if "*" in self.cors_origins_list:
+            problems.append("CORS_ORIGINS must not contain a wildcard when credentials are enabled")
+        if not self.cors_origins_list:
+            problems.append("CORS_ORIGINS must contain at least one explicit frontend origin")
         if not self.openrouter_api_key:
             problems.append("OPENROUTER_API_KEY must be set")
         if problems:
