@@ -347,6 +347,7 @@ interface TopbarProps {
 }
 
 function Topbar({ session, breadcrumbs, onSignOut, onOpenMobileNav, mobileNavOpen }: TopbarProps) {
+  const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   return (
     <header className="sticky top-0 z-30 flex h-topbar items-center gap-4 border-b border-border bg-white px-4 lg:px-6">
@@ -367,7 +368,13 @@ function Topbar({ session, breadcrumbs, onSignOut, onOpenMobileNav, mobileNavOpe
         )}
       </div>
       <div className="hidden md:block md:w-[280px] lg:w-[420px]">
-        <SearchInput placeholder="Search documents, rules, reports…" shortcut="⌘K" />
+        <SearchInput
+          placeholder="Search documents, rules, reports…"
+          shortcut="⌘K"
+          onSubmit={(value) => {
+            if (value.trim()) router.push(`/documents?q=${encodeURIComponent(value.trim())}`);
+          }}
+        />
       </div>
       <div className="ml-auto flex items-center gap-3">
         <span

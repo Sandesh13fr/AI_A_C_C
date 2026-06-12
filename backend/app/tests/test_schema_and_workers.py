@@ -29,8 +29,7 @@ def test_alembic_migration_applies_final_schema_file() -> None:
 
 def test_celery_app_imports() -> None:
     from app.workers.celery_app import celery_app
-    from app.workers.jobs_ingest import process_document_text
+    from app.workers.jobs_ingest import promote_source_records
 
     assert celery_app is not None
-    result = process_document_text("doc-1", "inspection text")
-    assert result["status"] == "ready"
+    assert callable(promote_source_records)

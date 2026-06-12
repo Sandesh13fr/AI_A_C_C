@@ -83,8 +83,9 @@ export default function DocumentsPage() {
 function DocumentsList() {
   const searchParams = useSearchParams();
   const initialTab = searchParams?.get("tab") === "saved" ? "saved" : "all";
+  const urlQuery = searchParams?.get("q") ?? "";
   const [tab, setTab] = useState(initialTab);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(urlQuery);
   const [filters, setFilters] = useState<AppliedFilters>(EMPTY_FILTERS);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +97,7 @@ function DocumentsList() {
       .listDocuments(
         {
           page_size: 100,
+          q: urlQuery || undefined,
         },
         session?.accessToken,
       )
@@ -106,13 +108,20 @@ function DocumentsList() {
         setDocuments([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [urlQuery]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return documents.filter((doc) => {
       if (q) {
-        const haystack = [doc.title, doc.filename, doc.doc_type, doc.metadata?.jurisdiction_code]
+        const haystack = [
+          doc.title,
+          doc.filename,
+          doc.doc_type,
+          doc.metadata?.jurisdiction_code,
+          doc.retrieval_summary,
+          ...(doc.topics ?? []),
+        ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();

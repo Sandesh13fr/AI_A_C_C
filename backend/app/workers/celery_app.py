@@ -23,4 +23,15 @@ except Exception:  # pragma: no cover
 
 settings = get_settings()
 celery_app = Celery("aw_compliance", broker=settings.redis_url, backend=settings.redis_url)
-celery_app.conf.update(task_serializer="json", result_serializer="json", accept_content=["json"])
+celery_app.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    beat_schedule={
+        "promote-source-records": {
+            "task": "ingest.promote_source_records",
+            "schedule": 300.0,  # every 5 minutes
+            "kwargs": {"max_records": 50},
+        },
+    },
+)
